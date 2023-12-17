@@ -63,7 +63,7 @@ void incarcapiesele(const string& directoryPath)
 }
 
 
-void rotate(float &x, float &y, float theta) {
+void roteste(float &x, float &y, float theta) {
     float dx = x;
     float dy = y;
     x = dx*cos(theta) - dy*sin(theta);
@@ -77,8 +77,8 @@ void DesenLinie(piesa P, int i, float x, float y, float unghi)
     float y_1 = P.comanda[i].y1 ;
     float x_2 = P.comanda[i].x2 ;
     float y_2 = P.comanda[i].y2 ;
-    rotate(x_1, y_1, unghi);
-    rotate(x_2, y_2, unghi);
+    roteste(x_1, y_1, unghi);
+    roteste(x_2, y_2, unghi);
     line(x_1 * zoom + x, y_1 * zoom + y, x_2 * zoom + x, y_2 * zoom + y) ;
 }
 
@@ -89,8 +89,8 @@ void DesenDreptunghi(piesa P, int i, float x, float y, float unghi)
     float y_1 = P.comanda[i].y1;
     float x_2 = P.comanda[i].x2;
     float y_2 = P.comanda[i].y2;
-    rotate(x_1, y_1, unghi);
-    rotate(x_2, y_2, unghi);
+    roteste(x_1, y_1, unghi);
+    roteste(x_2, y_2, unghi);
     rectangle(x_1 * zoom + x, y_1 * zoom + y, x_2 * zoom + x, y_2 * zoom + y);
 }
 
@@ -100,7 +100,7 @@ void DesenElipsa(piesa P,int i, float x, float y,float unghi)
     float y_1 = P.comanda[i].y1;
     float x_2 = P.comanda[i].x2;
     float y_2 = P.comanda[i].y2;
-    rotate(x_1, y_1, unghi);
+    roteste(x_1, y_1, unghi);
     ellipse(x_1 * zoom + x, y_1 * zoom + y, 0, 360, x_2 * zoom, y_2 * zoom);
 }
 
@@ -110,7 +110,7 @@ void DesenArc(piesa P,int i, float x, float y,float unghi)
     float y_1 = P.comanda[i].y1;
     float x_2 = P.comanda[i].x2;
     float y_2 = P.comanda[i].y2;
-    rotate(x_1, y_1, unghi);
+    roteste(x_1, y_1, unghi);
     arc(x_1 * zoom + x, y_1 * zoom + y, -90, 90, x_2 * zoom);
 }
 
@@ -144,7 +144,7 @@ void prelucrarepartesus()
         line((float)width / nrPiese * i, 0,(float)width / nrPiese * i, ylinie);
         for(int j = 0; j < piese[i].nrcomenzidesen; j++)
         {
-            desen(piese[i], (float)width / nrPiese *(i+0.5), ylinie / 2, 180);// aici modifici 0 daca vrei sa schimbi unghiunl pieselor din meniu, nu recomand totusi
+            desen(piese[i], (float)width / nrPiese *(i+0.5), ylinie / 2, 50);// aici modifici 0 daca vrei sa schimbi unghiunl pieselor din meniu, nu recomand totusi
         }
     }
 }
