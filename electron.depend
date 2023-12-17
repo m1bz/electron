@@ -1,8 +1,0 @@
-# depslib dependency file v1.0
-1702536142 source:c:\users\miha\documents\codeblocks\1v1 me\main.cpp
-	<iostream>
-	<fstream>
-	<filesystem>
-	<graphics.h>
-	<cmath>
-
