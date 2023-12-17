@@ -33,7 +33,7 @@ struct piesa // contine informatiile unei piese
 piesa piese[MAX2]; // vectorul in care salvam piesele vectorul este piese nu piesa()
 int nrPiese=0;
 int width = 1600, height = 900;
-int zoom=7.0;
+int zoom=10.0;
 void citirePiesa(const string& filePath, piesa& p)
 {
     ifstream file(filePath);
@@ -41,7 +41,7 @@ void citirePiesa(const string& filePath, piesa& p)
     file >> p.name;
     file >> p.nrnod;
 
-    for (int i = 0; i < p.nrnod; ++i)
+    for (int i = 0; i < p.nrnod; i++)
         file >> p.nodpiesa[i].x >> p.nodpiesa[i].y;
 
     file >> p.nrcomenzidesen;
@@ -70,56 +70,53 @@ void DesenLinie(piesa P, int i, float x, int y, float unghi)
     float y_1 = P.comanda[i].y1 ;
     float x_2 = P.comanda[i].x2 ;
     float y_2 = P.comanda[i].y2 ;
-    line(x_1*zoom+x, y_1*zoom +y, x_2*zoom+x, y_2*zoom+y);
+    line(x_1*zoom+x, y_1*zoom +y, x_2*zoom+x, y_2*zoom+y) ;
 }
 
-void DesenDreptunghi(piesa P,int i, float x, float y,float unghi)
+void DesenDreptunghi(piesa P, int i, float x, float y, float unghi)
 {
     unghi = unghi * PI / 180;
     float x_1 = P.comanda[i].x1;
     float y_1 = P.comanda[i].y1;
     float x_2 = P.comanda[i].x2;
     float y_2 = P.comanda[i].y2;
-    rectangle(x_1*zoom+x, y_1*zoom +y, x_2*zoom+x, y_2*zoom+y);
+    rectangle(x_1 * zoom + x, y_1 * zoom +y, x_2 * zoom + x, y_2 * zoom + y);
 }
 
 void DesenElipsa(piesa P,int i, float x, float y,float unghi)
 {
-    unghi=unghi * PI / 180;
-    float x_1=P.comanda[i].x1;
-    float y_1=P.comanda[i].y1;
-    float x_2=P.comanda[i].x2;
-    float y_2=P.comanda[i].y2;
-
-    ;
+    float x_1 = P.comanda[i].x1;
+    float y_1 = P.comanda[i].y1;
+    float x_2 = P.comanda[i].x2;
+    float y_2 = P.comanda[i].y2;
+    ellipse(x_1 * zoom + x, y_1 * zoom + y, 0 + unghi , 360 + unghi, x_2 * zoom, y_2 * zoom);
 }
 
 void DesenArc(piesa P,int i, float x, float y,float unghi)
 {
-    unghi=unghi * PI / 180;
-    float x_1=P.comanda[i].x1;
-    float y_1=P.comanda[i].y1;
-    float x_2=P.comanda[i].x2;
-    float y_2=P.comanda[i].y2;
-    ;
+    float x_1 = P.comanda[i].x1;
+    float y_1 = P.comanda[i].y1;
+    float x_2 = P.comanda[i].x2;
+    float y_2 = P.comanda[i].y2;
+    arc(x_1 * zoom + x, y_1 * zoom + y, -90 + unghi , 90+ unghi, x_2 * zoom);
 }
 
 void desen(piesa P, float x, float y, float unghi)
 {
-    for(int i=0; i<P.nrcomenzidesen; i++)
+    for(int i = 0; i < P.nrcomenzidesen; i++)
         switch(P.comanda[i].tipfigura)
         {
         case 'L':
-            DesenLinie(P,i,x,y, unghi);
+            DesenLinie(P, i, x, y, unghi);
             break;
         case 'R':
-            DesenDreptunghi(P,i,x,y,unghi);
+            DesenDreptunghi(P, i, x, y, unghi);
             break;
         case 'O':
-            DesenElipsa(P,i,x,y,unghi);
+            DesenElipsa(P, i, x, y, unghi);
             break;
         case 'A':
-            DesenArc(P,i,x,y,unghi);
+            DesenArc(P, i, x, y, unghi);
             break;
         }
 }
@@ -127,14 +124,14 @@ void desen(piesa P, float x, float y, float unghi)
 
 void prelucrarepartesus()
 {
-    int ylinie= height*10/100;
-    line(0,ylinie,width,ylinie);
-    for(int i=0; i<=nrPiese; i++)
+    int ylinie = height * 10 / 100;
+    line(0, ylinie, width, ylinie);
+    for(int i = 0; i <= nrPiese; i++)
     {
-        line((float)width/nrPiese*i,0,(float)width/nrPiese*i,ylinie);
-        for(int j=0; j<piese[i].nrcomenzidesen; j++)
+        line((float)width / nrPiese * i, 0,(float)width / nrPiese * i, ylinie);
+        for(int j = 0; j < piese[i].nrcomenzidesen; j++)
         {
-            desen(piese[i],(float)width/nrPiese*(i+0.5),ylinie/2,0);
+            desen(piese[i], (float)width / nrPiese *(i+0.5), ylinie / 2, 0);// aici modifici 0 daca vrei sa schimbi unghiunl pieselor din meniu, nu recomand totusi
         }
     }
 }
