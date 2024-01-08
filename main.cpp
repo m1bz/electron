@@ -15,7 +15,7 @@
 
 using namespace std;
 
-float zoom = 35.0;
+float zoom = MINZOOM;
 
 struct xynodpiese
 {
@@ -50,7 +50,7 @@ piesa piese[MAX2];
 MapOfSavedPieces placedPieces[MAX_PLACED_PIECES];
 int nrPiese = 0;
 int nrPlacedPieces = 0;
-int width = 1600, height = 900; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
+int width = 1280, height = 720; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
 int selectedpiece = 0;
 int PSelected = -1;
 int c = 8; //number of buttons
@@ -125,7 +125,7 @@ void Rotate(float &x, float &y, float theta)
     y = dx*sin(theta) + dy*cos(theta);
 }
 
-void DrawLine(piesa P, int i, float x, float y, float angle)
+void DrawLine(piesa P, int i, float x, float y, float angle, float sizedrawing)
 {
     angle = angle * PI / 180;
     float x_1 = P.comanda[i].x1 ;
@@ -134,10 +134,10 @@ void DrawLine(piesa P, int i, float x, float y, float angle)
     float y_2 = P.comanda[i].y2 ;
     Rotate(x_1, y_1, angle);
     Rotate(x_2, y_2, angle);
-    line(x_1 * zoom + x, y_1 * zoom + y, x_2 * zoom + x, y_2 * zoom + y) ;
+    line(x_1 * sizedrawing + x, y_1 * sizedrawing + y, x_2 * sizedrawing + x, y_2 * sizedrawing + y) ;
 }
 
-void DrawRectangle(piesa P, int i, float x, float y, float angle)
+void DrawRectangle(piesa P, int i, float x, float y, float angle, float sizedrawing)
 {
     angle = angle * PI / 180;
     float x_1 = P.comanda[i].x1;
@@ -146,12 +146,12 @@ void DrawRectangle(piesa P, int i, float x, float y, float angle)
     float y_2 = P.comanda[i].y2;
     Rotate(x_1, y_1, angle);
     Rotate(x_2, y_2, angle);
-    rectangle(x_1 * zoom + x, y_1 * zoom + y, x_2 * zoom + x, y_2 * zoom + y);
+    rectangle(x_1 * sizedrawing + x, y_1 * sizedrawing + y, x_2 * sizedrawing + x, y_2 * sizedrawing + y);
 }
 
-void DrawCircle(piesa P,int i, float x, float y)
+void DrawCircle(piesa P,int i, float x, float y, float sizedrawing)
 {
-    circle(x+P.comanda[i].x2*zoom,y+P.comanda[i].y2*zoom,P.comanda[i].x1*zoom);
+    circle(x+P.comanda[i].x2*sizedrawing,y+P.comanda[i].y2*sizedrawing,P.comanda[i].x1*sizedrawing);
 }
 
 void DrawButton(int xtop, int ytop, int xbottom, int ybottom)
@@ -163,27 +163,26 @@ void DrawButton(int xtop, int ytop, int xbottom, int ybottom)
     resetstyle();
 }
 
-void Drawing(piesa P, float x, float y, float angle, int Color)
+void Drawing(piesa P, float x, float y, float angle, int Color, float sizedrawing)
 {
-    //rectangle(1.5*zoom+x,1.5*zoom+y,-1.5*zoom+x,-1.5*zoom+y); // imaginary rectangle where if you click you select the piece basically
     setcolor(Color);
     fillstyle(Color);//need to introduce in the antet of the function a int like Color, for selecting
     for(int i = 0; i < P.NumberOfNodes; i++)
     {
-        circle(x+P.nodpiesa[i].x*zoom,y+P.nodpiesa[i].y*zoom, zoom/5);
-        floodfill(x+P.nodpiesa[i].x*zoom,y+P.nodpiesa[i].y*zoom,Color);
+        circle(x+P.nodpiesa[i].x*sizedrawing,y+P.nodpiesa[i].y*sizedrawing, sizedrawing/5);
+        floodfill(x+P.nodpiesa[i].x*sizedrawing,y+P.nodpiesa[i].y*sizedrawing,Color);
     }
     for(int i = 0; i < P.NumberOfDrawingCommands; i++)
         switch(P.comanda[i].tipfigura)
         {
         case 'L':
-            DrawLine(P, i, x, y, angle);
+            DrawLine(P, i, x, y, angle, sizedrawing);
             break;
         case 'R':
-            DrawRectangle(P, i, x, y, angle);
+            DrawRectangle(P, i, x, y, angle, sizedrawing);
             break;
         case 'O':
-            DrawCircle(P,i,x,y);
+            DrawCircle(P, i, x, y, sizedrawing);
             break;
         }
     setcolor(WHITE);
@@ -229,7 +228,7 @@ void DrawPlacedPieces()
     if(nrPlacedPieces!=0)
     {
         for(int i = 0; i < nrPlacedPieces; i++)
-            Drawing(piese[placedPieces[i].index], placedPieces[i].x, placedPieces[i].y, placedPieces[i].rotationangle, placedPieces[i].Color);
+            Drawing(piese[placedPieces[i].index], placedPieces[i].x, placedPieces[i].y, placedPieces[i].rotationangle, placedPieces[i].Color, placedPieces[i].sizep);
     }
 }
 
@@ -257,8 +256,6 @@ void RestartMenu()
     {
         PropertiesMenu();
         ok=4;
-                rectangle((width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4), (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4), (height/b*b+height/b*(b-1))/2-height/b/4);
-
     }
     else
         ok=0;
@@ -392,11 +389,12 @@ void Lclick_handler(int x, int y)
     }
     if(!condition1 && !condition2 && !condition3 && !condition4 && condition5) // place the selected piece in the space
     {
-        Drawing(piese[selectedpiece], x, y, 0, WHITE);
+        Drawing(piese[selectedpiece], x, y, 0, WHITE, zoom);
         placedPieces[nrPlacedPieces].index = selectedpiece;
         placedPieces[nrPlacedPieces].x = x;
         placedPieces[nrPlacedPieces].y = y;
         placedPieces[nrPlacedPieces].rotationangle = 0;
+        placedPieces[nrPlacedPieces].sizep = zoom;
         nrPlacedPieces++;
         ok=0;
     }
@@ -416,10 +414,8 @@ void Lclick_handler(int x, int y)
         if(condition9)
             Pok=1; // rotation angle
         if(condition10)
-        {
-            Pok=2;
-            rectangle((width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4), (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4), (height/b*b+height/b*(b-1))/2-height/b/4);
-        } // size
+            Pok=2; // size
+
     }
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && (ok==0 || ok==4))
     {
@@ -449,7 +445,7 @@ void Move_handler(int x, int y)
         DeselectPiece();
     if(Pok > 0)
     {
-        if(Pok=1);
+        if(Pok == 1)
         {
             if(x-width/c*(c-3) >= 0 && x <= width/c*(c-2))
             {
@@ -457,11 +453,11 @@ void Move_handler(int x, int y)
                 RestartMenu();
             }
         }
-        if(Pok=2)
+        if(Pok == 2)
         {
-            if(x-width/c*(c-2)+width/c/2 >= 0 && x <= width/c*(c-1)+width/c/2)
+            if(width/c*(c-2)+width/c/2 <= x && x <= width/c*(c-1)+width/c/2)
             {
-             placedPieces[PSelected].sizep = ((x-(width/c*(c-2)+width/c/2))/PixelOfZoom);
+                placedPieces[PSelected].sizep = ((x-(width/c*(c-2)+width/c/2))/PixelOfZoom)+MINZOOM;;
                 RestartMenu();
             }
         }
@@ -470,7 +466,7 @@ void Move_handler(int x, int y)
         for(int i = 0; i < nrPiese; i++)
         {
             DrawButton(0, height/b*(i+1), width/c, height/b*(i+2));
-            Drawing(piese[i], width/c/2, (height/b*(i+1)+height/b*(i+2))/2, 0, WHITE);
+            Drawing(piese[i], width/c/2, (height/b*(i+1)+height/b*(i+2))/2, 0, WHITE, zoom);
             ok=1;
         }
     else
@@ -517,7 +513,6 @@ void initializare()
 int main()
 {
 
-    cout<<PixelOfZoom;
     string path = R"(C:\Users\miha\Desktop\stari ale proiectului\piesele refacute)";
     incarcapiesele(path);
     initializare();
