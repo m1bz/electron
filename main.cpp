@@ -6,6 +6,8 @@
 #define MAX1 10
 #define MAX2 25
 #define MAX_PLACED_PIECES 25
+#define MAXZOOM 55.0
+#define MINZOOM 15.0
 #define PI 3.1415
 #define MCOLOR1 COLOR(15,255,80) //neon green
 #define MCOLOR2 COLOR(4, 55, 242) // blue
@@ -13,7 +15,7 @@
 
 using namespace std;
 
-float zoom = 25.0;
+float zoom = 35.0;
 
 struct xynodpiese
 {
@@ -48,12 +50,15 @@ piesa piese[MAX2];
 MapOfSavedPieces placedPieces[MAX_PLACED_PIECES];
 int nrPiese = 0;
 int nrPlacedPieces = 0;
-int width = 1280, height = 720; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
+int width = 1600, height = 900; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
 int selectedpiece = 0;
 int PSelected = -1;
-int c=8; //number of buttons
-int b=12; //by what we divide height and some other variables
-int ok; //check for handling mouse events
+int c = 8; //number of buttons
+int b = 12; //by what we divide height and some other variables, to create parts of the menu
+int ok; //check for handling mouse events #1
+int Pok = 0; //check for handling mouse events #2
+float PixelOfZoom = (float)(width/c)/(float)(MAXZOOM-MINZOOM);
+float PixelOfRotation = (width/c)/(float)180.5;
 const char *bnames[] = { "INTRODUCE", /*TEXT #1 BUTTON*/ "STERGE", /*TEXT #2 BUTTON*/
                          "INSTRUMENTE", /*TEXT #3 BUTTON*/ "", /*TEXT #4 BUTTON*/
                          "", /*TEXT #5 BUTTON*/ "", /*TEXT #6 BUTTON*/
@@ -62,6 +67,11 @@ const char *bnames[] = { "INTRODUCE", /*TEXT #1 BUTTON*/ "STERGE", /*TEXT #2 BUT
 const char *bcarac[2] = {"UNGHI:", "MARIME:"};
 const char *bworkspace[4] = {"STERGE TOT", "SALVEAZA", "SALVEAZA CA", "INCARCA"};
 string lastLoadedFilePath;
+
+int ColorSelected()
+{
+    return MCOLOR3; // color selected to draw the menu/selected piece, etc
+}
 
 void citirePiesa(const string& filePath, piesa& p)
 {
@@ -93,7 +103,7 @@ void incarcapiesele(const string& directoryPath)
 void menustyle()
 {
     setlinestyle(0,0,2);
-    setcolor(MCOLOR3);
+    setcolor(ColorSelected());
 }
 
 void resetstyle() //used to change from the menu style to normal style
@@ -183,7 +193,7 @@ void Drawing(piesa P, float x, float y, float angle, int Color)
 void printtext(int x, int y, const char* text)
 {
     settextstyle(3,HORIZ_DIR,3);
-    setcolor(MCOLOR3);
+    setcolor(ColorSelected());
     char temp[100];
     strcpy(temp, text);
     outtextxy(x - textwidth(temp) / 2, y - textheight(temp) / 2, temp);
@@ -228,12 +238,30 @@ void CheckIfPieceIsSelected()
 
 }
 
+void PropertiesMenu()
+{
+    setlinestyle(0,0,5);
+    line(width/c*(c-2)+width/c/2,(height/b*b+height/b*(b-1))/2, width/c*(c-1)+width/c/2, (height/b*b+height/b*(b-1))/2);
+    line(width/c*(c-3),(height/b*b+height/b*(b-1))/2, width/c*(c-2), (height/b*b+height/b*(b-1))/2);
+    setlinestyle(0,0,0);
+    circle(width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM), (height/b*b+height/b*(b-1))/2, height/b/4);
+    circle(width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle, (height/b*b+height/b*(b-1))/2, height/b/4);
+}
+
 void RestartMenu()
 {
     cleardevice();
     Menu();
     DrawPlacedPieces();
-    ok=0;
+    if(Pok > 0)
+    {
+        PropertiesMenu();
+        ok=4;
+                rectangle((width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4), (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4), (height/b*b+height/b*(b-1))/2-height/b/4);
+
+    }
+    else
+        ok=0;
 }
 
 void DeletePiece()
@@ -270,7 +298,7 @@ void SaveMapOfPieces(bool overwrite = true)
 void SaveMapAs(bool overwrite = true)
 {
     string filePath;
-     overwrite=false;
+    overwrite=false;
     cout << "Select a file to save the map: ";
     cin >> filePath;
 
@@ -289,7 +317,7 @@ void LoadMapFromFile(const string& filePath)
 
     nrPlacedPieces = 0;
     while (file >> placedPieces[nrPlacedPieces].index >> placedPieces[nrPlacedPieces].x >> placedPieces[nrPlacedPieces].y
-        >> placedPieces[nrPlacedPieces].rotationangle >> placedPieces[nrPlacedPieces].sizep >> placedPieces[nrPlacedPieces].Color)
+            >> placedPieces[nrPlacedPieces].rotationangle >> placedPieces[nrPlacedPieces].sizep >> placedPieces[nrPlacedPieces].Color)
     {
         nrPlacedPieces++;
         if (nrPlacedPieces >= MAX_PLACED_PIECES)
@@ -322,16 +350,14 @@ void ResetMapOfPieces()
 
 void DeselectPiece()
 {
-    cout<<endl<<"se deselecteaza ok = 0";
     placedPieces[PSelected].Color=WHITE;
-    RestartMenu();
     PSelected = -1;
+    RestartMenu();
 }
 
 void SelectPiece()
 {
-    cout<<endl<<"se selecteaza ok = 4";
-    placedPieces[PSelected].Color=MCOLOR3;
+    placedPieces[PSelected].Color=ColorSelected();;
     RestartMenu();
     ok=4;
 }
@@ -346,6 +372,8 @@ void Lclick_handler(int x, int y)
     bool condition6 = (ok==2 && x < width/c*3 && width/c*2 < x && height/b < y && y < height/b*5); // condition for accessing the workspace buttons
     bool condition7 = (y > height/b*(b-1)); // access the space under the bottom line drawn on the screen
     bool condition8 = (height/b < y && y < height/b*(b-1)); //access the space where you place the pieces, the space between the two drawn lines on the screen
+    bool condition9 = (x < (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle + height/b/4) && (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle - height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y); // condition for finding the slider for rotation
+    bool condition10 = (x < (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4) && (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y); // condtion for finding the slider for size
     if(condition1)
     {
         closegraph();
@@ -385,7 +413,13 @@ void Lclick_handler(int x, int y)
     }
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && condition7 && ok==4)
     {
-        cout<<endl<<"am intrat in partea de setari de zoooooooooomn";
+        if(condition9)
+            Pok=1; // rotation angle
+        if(condition10)
+        {
+            Pok=2;
+            rectangle((width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4), (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4), (height/b*b+height/b*(b-1))/2-height/b/4);
+        } // size
     }
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && (ok==0 || ok==4))
     {
@@ -396,15 +430,16 @@ void Lclick_handler(int x, int y)
             if( x < placedPieces[i].x + placedPieces[i].sizep*1.5 && placedPieces[i].x - placedPieces[i].sizep*1.5 < x && y < placedPieces[i].y + placedPieces[i].sizep*1.5 && placedPieces[i].y - placedPieces[i].sizep*1.5 < y )
             {
                 PSelected = i;
-                cout<<endl<<"AM APASAT PE PIESA CU NUMARUL:"<<i<<"   nrplacedpieces:"<<nrPlacedPieces;
                 ok=4;
                 break;
             }
         if(ok == 0)
             DeselectPiece();
         else
+        {
             SelectPiece();
-        cout<<endl<<PSelected<<" "<<ok;
+            PropertiesMenu();
+        }
     }
 
 }
@@ -412,6 +447,25 @@ void Move_handler(int x, int y)
 {
     if(ok == 4 && y < height/b && (x < width/c || (x < width/c*3 && width/c*2 < x)))
         DeselectPiece();
+    if(Pok > 0)
+    {
+        if(Pok=1);
+        {
+            if(x-width/c*(c-3) >= 0 && x <= width/c*(c-2))
+            {
+                placedPieces[PSelected].rotationangle = ((x-width/c*(c-3))/PixelOfRotation);
+                RestartMenu();
+            }
+        }
+        if(Pok=2)
+        {
+            if(x-width/c*(c-2)+width/c/2 >= 0 && x <= width/c*(c-1)+width/c/2)
+            {
+             placedPieces[PSelected].sizep = ((x-(width/c*(c-2)+width/c/2))/PixelOfZoom);
+                RestartMenu();
+            }
+        }
+    }
     if(x < width/c && 0 < x && 0 < y && y < height/b) //hover over first button to open the list of pieces
         for(int i = 0; i < nrPiese; i++)
         {
@@ -442,10 +496,19 @@ void Move_handler(int x, int y)
         RestartMenu();
 }
 
+void LUPclick_handler(int x, int y)
+{
+    if(Pok > 0)
+    {
+        Pok=0;
+    }
+}
+
 void initializare()
 {
     initwindow(width, height);
     RestartMenu();
+    registermousehandler(WM_LBUTTONUP,LUPclick_handler);
     registermousehandler(WM_LBUTTONDOWN,Lclick_handler);
     registermousehandler(WM_MOUSEMOVE,Move_handler);
     delay(4000000);// so it doesnt instantly close the program
@@ -453,6 +516,8 @@ void initializare()
 
 int main()
 {
+
+    cout<<PixelOfZoom;
     string path = R"(C:\Users\miha\Desktop\stari ale proiectului\piesele refacute)";
     incarcapiesele(path);
     initializare();
