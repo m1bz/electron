@@ -119,6 +119,7 @@ void fillstyle(int Color)
 
 void Rotate(float &x, float &y, float theta)
 {
+    theta = theta * PI / 180;
     float dx = x;
     float dy = y;
     x = dx*cos(theta) - dy*sin(theta);
@@ -127,7 +128,6 @@ void Rotate(float &x, float &y, float theta)
 
 void DrawLine(piesa P, int i, float x, float y, float angle, float sizedrawing)
 {
-    angle = angle * PI / 180;
     float x_1 = P.comanda[i].x1 ;
     float y_1 = P.comanda[i].y1 ;
     float x_2 = P.comanda[i].x2 ;
@@ -139,7 +139,6 @@ void DrawLine(piesa P, int i, float x, float y, float angle, float sizedrawing)
 
 void DrawRectangle(piesa P, int i, float x, float y, float angle, float sizedrawing)
 {
-    angle = angle * PI / 180;
     float x_1 = P.comanda[i].x1;
     float y_1 = P.comanda[i].y1;
     float x_2 = P.comanda[i].x2;
@@ -169,8 +168,11 @@ void Drawing(piesa P, float x, float y, float angle, int Color, float sizedrawin
     fillstyle(Color);//need to introduce in the antet of the function a int like Color, for selecting
     for(int i = 0; i < P.NumberOfNodes; i++)
     {
-        circle(x+P.nodpiesa[i].x*sizedrawing,y+P.nodpiesa[i].y*sizedrawing, sizedrawing/5);
-        floodfill(x+P.nodpiesa[i].x*sizedrawing,y+P.nodpiesa[i].y*sizedrawing,Color);
+        float x_2 = P.nodpiesa[i].x;
+        float y_2 = P.nodpiesa[i].y;
+        Rotate(x_2, y_2, angle);
+        circle(x+x_2*sizedrawing,y+y_2*sizedrawing, sizedrawing/5);
+        floodfill(x+x_2*sizedrawing,y+y_2*sizedrawing,Color);
     }
     for(int i = 0; i < P.NumberOfDrawingCommands; i++)
         switch(P.comanda[i].tipfigura)
@@ -371,6 +373,7 @@ void Lclick_handler(int x, int y)
     bool condition8 = (height/b < y && y < height/b*(b-1)); //access the space where you place the pieces, the space between the two drawn lines on the screen
     bool condition9 = (x < (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle + height/b/4) && (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle - height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y); // condition for finding the slider for rotation
     bool condition10 = (x < (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4) && (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y); // condtion for finding the slider for size
+
     if(condition1)
     {
         closegraph();
@@ -415,7 +418,6 @@ void Lclick_handler(int x, int y)
             Pok=1; // rotation angle
         if(condition10)
             Pok=2; // size
-
     }
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && (ok==0 || ok==4))
     {
@@ -436,6 +438,9 @@ void Lclick_handler(int x, int y)
             SelectPiece();
             PropertiesMenu();
         }
+    }
+    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && condition7)
+    {
     }
 
 }
@@ -512,7 +517,6 @@ void initializare()
 
 int main()
 {
-
     string path = R"(C:\Users\miha\Desktop\stari ale proiectului\piesele refacute)";
     incarcapiesele(path);
     initializare();
