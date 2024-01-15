@@ -3,6 +3,7 @@
 #include <fstream>
 #include <filesystem>
 #include <cmath>
+#include <conio.h>
 #define MAX1 10
 #define MAX2 25
 #define MAX3 3
@@ -80,6 +81,12 @@ const char *bcarac[2] = {"UNGHI:", "MARIME:"};
 const char *bworkspace[4] = {"STERGE TOT", "SALVEAZA", "SALVEAZA CA", "INCARCA"};
 string lastLoadedFilePath;
 bool inMainMenu = true;
+int ScreenNumber=1;
+bool isDragging=false;
+bool pieceSelected=false;
+int mouseXOnPress, mouseYOnPress;
+float pieceXOnPress, pieceYOnPress;
+
 
 int ColorSelected()
 {
@@ -293,9 +300,10 @@ void Menu()
     }
 }
 
-void BacktoStartScreen()
+void BackToStartScreen()
 {
-
+    DrawMainMenu();
+    delay(100);
 }
 
 void DrawPlacedPieces()
@@ -345,8 +353,8 @@ void DrawConnections()
                 Rotate(x1, y1, placedPieces[i].rotationangle);
                 Rotate(x2, y2, placedPieces[placedPieces[i].node[j].PieceNumber].rotationangle);
                 //line(placedPieces[i].x + placedPieces[i].sizep*x1, placedPieces[i].y + placedPieces[i].sizep*y1, placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2); //this one draws one line straight from the connection of one point to the another one
-                 //for(int a = 0; a < nrPlacedPieces; a++)
-                   // if()
+                //for(int a = 0; a < nrPlacedPieces; a++)
+                // if()
                 line(placedPieces[i].x + placedPieces[i].sizep*x1, placedPieces[i].y + placedPieces[i].sizep*y1, (placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[i].y + placedPieces[i].sizep*y1);
                 line((placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[i].y + placedPieces[i].sizep*y1, (placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2);
                 line((placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2, placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2);
@@ -465,8 +473,54 @@ void SelectPiece()
 
 void DeletePiece()
 {
-    CheckIfPieceIsSelected();
-    DeselectPiece();
+    if (PSelected != -1)
+    {
+        for (int i = PSelected; i < nrPlacedPieces - 1; ++i)
+        {
+            placedPieces[i] = placedPieces[i + 1];
+        }
+        nrPlacedPieces--;
+
+        DeselectPiece();
+
+        RestartMenu();
+    }
+}
+
+void HelpScreen()
+{
+    cleardevice();
+
+    setcolor(WHITE);
+    setfillstyle(SOLID_FILL, WHITE);
+
+    settextstyle(BOLD_FONT, HORIZ_DIR, 2);
+    printtext(width / 2, height / 8, "Ajutor");
+
+    printtext(width / 2, height / 4, "Click = Selectarea Piesei");
+    printtext(width / 2, height / 4 + 30, "DoubleClick = Deselectarea Piesei");
+
+    printtext(width / 2, height / 4 + 80, "Atunci cand piesa este selectata,");
+    printtext(width / 2, height / 4 + 110, "doua slidere vor aparea:");
+
+    printtext(width / 2, height / 4 + 160, "Sterge = Stergerea unei piese si a");
+    printtext(width / 2, height / 4 + 190, "tuturor legaturilor cu piesa respectiva");
+
+    printtext(width / 2, height / 4 + 240, "Sterge Tot = Curatarea ecranului de toate");
+    printtext(width / 2, height / 4 + 270, "piesele si legaturile");
+
+    printtext(width / 2, height / 4 + 320, "Salveaza = Salvarea progresului facut in");
+    printtext(width / 2, height / 4 + 350, "fisierul de lucru");
+
+    printtext(width / 2, height / 4 + 400, "Salveaza Ca = Crearea unui nou fisier in");
+    printtext(width / 2, height / 4 + 430, "care va fi salvat schema electrica");
+
+    printtext(width / 2, height / 4 + 480, "Incarca = Deschiderea unui fisier deja creat");
+    printtext(width / 2, height / 4 + 510, "si lucrarea in acesta");
+
+    DrawButton(width - 80, 20, width - 20, 60);
+    printtext(width - 50, 40, "Inapoi");
+
 }
 
 int maxsize()
@@ -496,6 +550,29 @@ int minsize()
 
 void Lclick_handler(int x, int y)
 {
+    if(ScreenNumber==1)
+    {
+        if (x > width / 4 && x < 3 * width / 4)
+    {
+        if (y > height / 4 && y < 5 * height / 12)
+        {
+            ScreenNumber=2;
+        }
+        else if (y > 5 * height / 12 && y < 2 * height / 3)
+        {
+            ScreenNumber=3;
+            HelpScreen();
+        }
+        else if (y > 2 * height / 3 && y < 11 * height / 12)
+        {
+            closegraph();
+            getch();
+        }
+    }
+    }
+    else if(ScreenNumber==2)
+    {
+
     bool condition1 = (x < width/c*c && width/c*(c-1) < x && 0 < y && y < height/b); //condition for finding the close button
     bool condition2 = (x < width/c*(c-1) && width/c*(c-2) < x && 0 < y && y < height/b); //condition for finding the back to menu button
     bool condition3 = (x < width/c*2 && width/c < x && 0 < y && y < height/b); //condition for finding the delete button
@@ -515,7 +592,10 @@ void Lclick_handler(int x, int y)
         getch();
     }
     if(!condition1 && condition2)
-        BacktoStartScreen();
+    {
+        ScreenNumber=1;
+        BackToStartScreen();
+    }
     if(!condition1 && !condition2 && condition3)
         DeletePiece();
     if(!condition1 && !condition2 && !condition3 && condition4) // select a piece
@@ -638,29 +718,43 @@ void Lclick_handler(int x, int y)
         DeselectPiece();
         RestartMenu();
     }
+    }
+    else if(ScreenNumber==3)
+    {
+        if (ismouseclick(WM_LBUTTONDOWN))
+    {
+        int mx, my;
+        getmouseclick(WM_LBUTTONDOWN, mx, my);
+
+
+        if (mx > width - 80 && mx < width - 20 && my > 20 && my < 60)
+        {
+            ScreenNumber=1;
+            BackToStartScreen();
+            return;
+        }
+        else
+        {
+            clearmouseclick(WM_LBUTTONDOWN);
+        }
+    }
+    }
 }
 
-void MainMenuClickHandler(int x, int y, bool& inMainMenu, bool& exitProgram)
+
+void LDBLCLICK_handler(int x, int y)
 {
-    if (x > width / 4 && x < 3 * width / 4)
+    if (isDragging && PSelected != -1)
     {
-        if (y > height / 4 && y < 5 * height / 12)
-        {
-            inMainMenu = false;
-        }
-        else if (y > 5 * height / 12 && y < 2 * height / 3)
-        {
-            //Ce se va intampla cand apesi ajutor
-        }
-        else if (y > 2 * height / 3 && y < 11 * height / 12)
-        {
-            exitProgram = true;
-        }
+        placedPieces[PSelected].x = x;
+        placedPieces[PSelected].y = y;
+        RestartMenu();
     }
 }
 
 void Move_handler(int x, int y)
 {
+    if(ScreenNumber==2)
     if(ok == 4 && y < height/b && (x < width/c || (x < width/c*3 && width/c*2 < x)))
         DeselectPiece();
     if(Pok > 0)
@@ -716,12 +810,12 @@ void LUPclick_handler(int x, int y)
 {
     if(Pok > 0)
         Pok = 0;
+    isDragging = false;
 }
 
 void initializare()
 {
-    initwindow(width, height);
-    RestartMenu();
+    DrawMainMenu();
     registermousehandler(WM_LBUTTONUP,LUPclick_handler);
     registermousehandler(WM_LBUTTONDOWN,Lclick_handler);
     registermousehandler(WM_MOUSEMOVE,Move_handler);
@@ -734,25 +828,9 @@ int main()
     bool inMainMenu = true;
     bool exitProgram = false;
     initwindow(width, height, "Electron");
-    DrawMainMenu();
+    incarcapiesele(path);
+    initializare();
 
-    while (inMainMenu && !exitProgram)
-    {
-        if (ismouseclick(WM_LBUTTONDOWN))
-        {
-            int x, y;
-            getmouseclick(WM_LBUTTONDOWN, x, y);
-            MainMenuClickHandler(x, y, inMainMenu, exitProgram);
-            clearmouseclick(WM_LBUTTONDOWN);
-        }
-    }
-    closegraph();
-
-    if (!inMainMenu && !exitProgram)
-    {
-        incarcapiesele(path);
-        initializare();
-    }
 
     return 0;
 }
