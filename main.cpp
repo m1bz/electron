@@ -3,6 +3,7 @@
 #include <fstream>
 #include <filesystem>
 #include <cmath>
+#include <conio.h>
 #define MAX1 10
 #define MAX2 25
 #define MAX_PLACED_PIECES 25
@@ -53,10 +54,12 @@ int nrPlacedPieces = 0;
 int width = 1280, height = 720; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
 int selectedpiece = 0;
 int PSelected = -1;
+bool pieceSelected = false;
 int c = 8; //number of buttons
 int b = 12; //by what we divide height and some other variables, to create parts of the menu
 int ok; //check for handling mouse events #1
 int Pok = 0; //check for handling mouse events #2
+bool isDragging = false;
 float PixelOfZoom = (float)(width/c)/(float)(MAXZOOM-MINZOOM);
 float PixelOfRotation = (width/c)/(float)180.5;
 const char *bnames[] = { "INTRODUCE", /*TEXT #1 BUTTON*/ "STERGE", /*TEXT #2 BUTTON*/
@@ -67,6 +70,10 @@ const char *bnames[] = { "INTRODUCE", /*TEXT #1 BUTTON*/ "STERGE", /*TEXT #2 BUT
 const char *bcarac[2] = {"UNGHI:", "MARIME:"};
 const char *bworkspace[4] = {"STERGE TOT", "SALVEAZA", "SALVEAZA CA", "INCARCA"};
 string lastLoadedFilePath;
+int mouseXOnPress, mouseYOnPress;
+float pieceXOnPress, pieceYOnPress;
+int ScreenNumber = 1;
+bool doubleClicked = false;
 
 int ColorSelected()
 {
@@ -120,11 +127,35 @@ void fillstyle(int Color)
 void Rotate(float &x, float &y, float theta)
 {
     theta = theta * PI / 180;
-    float dx = x;
-    float dy = y;
-    x = dx*cos(theta) - dy*sin(theta);
-    y = dx*sin(theta) + dy*cos(theta);
+    float tempX = x;
+    x = x * cos(theta) - y * sin(theta);
+    y = tempX * sin(theta) + y * cos(theta);
 }
+
+void RotateRectangle(float x, float y, float width, float height, float angle)
+{
+    float halfWidth = width / 2;
+    float halfHeight = height / 2;
+
+    float cosA = cos(angle * PI / 180);
+    float sinA = sin(angle * PI / 180);
+
+    float x1 = x + halfWidth * cosA - halfHeight * sinA;
+    float y1 = y + halfWidth * sinA + halfHeight * cosA;
+    float x2 = x - halfWidth * cosA - halfHeight * sinA;
+    float y2 = y - halfWidth * sinA + halfHeight * cosA;
+    float x3 = x - halfWidth * cosA + halfHeight * sinA;
+    float y3 = y - halfWidth * sinA - halfHeight * cosA;
+    float x4 = x + halfWidth * cosA + halfHeight * sinA;
+    float y4 = y + halfWidth * sinA - halfHeight * cosA;
+
+
+    line(x1, y1, x2, y2);
+    line(x2, y2, x3, y3);
+    line(x3, y3, x4, y4);
+    line(x4, y4, x1, y1);
+}
+
 
 void DrawLine(piesa P, int i, float x, float y, float angle, float sizedrawing)
 {
@@ -139,13 +170,12 @@ void DrawLine(piesa P, int i, float x, float y, float angle, float sizedrawing)
 
 void DrawRectangle(piesa P, int i, float x, float y, float angle, float sizedrawing)
 {
-    float x_1 = P.comanda[i].x1;
-    float y_1 = P.comanda[i].y1;
-    float x_2 = P.comanda[i].x2;
-    float y_2 = P.comanda[i].y2;
-    Rotate(x_1, y_1, angle);
-    Rotate(x_2, y_2, angle);
-    rectangle(x_1 * sizedrawing + x, y_1 * sizedrawing + y, x_2 * sizedrawing + x, y_2 * sizedrawing + y);
+    float x1 = P.comanda[i].x1;
+    float y1 = P.comanda[i].y1;
+    float x2 = P.comanda[i].x2;
+    float y2 = P.comanda[i].y2;
+
+    RotateRectangle(x, y, (x2 - x1) * sizedrawing, (y2 - y1) * sizedrawing, angle);
 }
 
 void DrawCircle(piesa P,int i, float x, float y, float sizedrawing)
@@ -201,6 +231,37 @@ void printtext(int x, int y, const char* text)
     setcolor(WHITE);
 }
 
+void DrawMainMenu()
+{
+    cleardevice();
+
+
+    setbkcolor(BLACK);
+    clearviewport();
+
+
+    setcolor(WHITE);
+
+
+    settextstyle(BOLD_FONT, HORIZ_DIR, 4);
+    outtextxy(width / 2 - textwidth("Electron") / 2, height / 8 - textheight("Electron") / 2, "Electron");
+
+
+    setcolor(COLOR(0, 0, 255));
+    rectangle(width / 4, height / 4, 3 * width / 4, 5 * height / 12);
+    rectangle(width / 4, 5 * height / 12, 3 * width / 4, 2 * height / 3);
+    rectangle(width / 4, 2 * height / 3, 3 * width / 4, 11 * height / 12);
+
+
+    settextstyle(BOLD_FONT, HORIZ_DIR, 2);
+    printtext(width / 2, (5 * height / 12 + height / 4) / 2, "Start");
+    printtext(width / 2, (2 * height / 3 + 5 * height / 12) / 2, "Ajutor");
+    printtext(width / 2, (11 * height / 12 + 2 * height / 3) / 2, "Iesire");
+}
+
+
+
+
 void Menu()
 {
     menustyle();
@@ -220,9 +281,10 @@ void Menu()
     }
 }
 
-void BacktoStartScreen()
+void BackToStartScreen()
 {
-
+    DrawMainMenu();
+    delay(100);
 }
 
 void DrawPlacedPieces()
@@ -249,6 +311,7 @@ void PropertiesMenu()
     circle(width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle, (height/b*b+height/b*(b-1))/2, height/b/4);
 }
 
+
 void RestartMenu()
 {
     cleardevice();
@@ -263,14 +326,32 @@ void RestartMenu()
         ok=0;
 }
 
+void DeselectPiece()
+{
+    placedPieces[PSelected].Color=WHITE;
+    PSelected = -1;
+    RestartMenu();
+}
+
 void DeletePiece()
 {
-    CheckIfPieceIsSelected();
+    if (PSelected != -1)
+    {
+        for (int i = PSelected; i < nrPlacedPieces - 1; ++i)
+        {
+            placedPieces[i] = placedPieces[i + 1];
+        }
+        nrPlacedPieces--;
+
+        DeselectPiece();
+
+        RestartMenu();
+    }
 }
 
 void SaveMapToFile(const string& filePath, bool overwrite)
 {
-    if (!overwrite && std::filesystem::exists(filePath))
+    if (!overwrite && filesystem::exists(filePath))
     {
         cout << "Error: File already exists. Choose a different filename or enable overwrite." << endl;
         return;
@@ -347,12 +428,6 @@ void ResetMapOfPieces()
     cout << "Map resetted" << endl;
 }
 
-void DeselectPiece()
-{
-    placedPieces[PSelected].Color=WHITE;
-    PSelected = -1;
-    RestartMenu();
-}
 
 void SelectPiece()
 {
@@ -361,18 +436,77 @@ void SelectPiece()
     ok=4;
 }
 
+void HelpScreen()
+{
+    cleardevice();
+
+    setcolor(WHITE);
+    setfillstyle(SOLID_FILL, WHITE);
+
+    settextstyle(BOLD_FONT, HORIZ_DIR, 2);
+    printtext(width / 2, height / 8, "Ajutor");
+
+    printtext(width / 2, height / 4, "Click = Selectarea Piesei");
+    printtext(width / 2, height / 4 + 30, "DoubleClick = Deselectarea Piesei");
+
+    printtext(width / 2, height / 4 + 80, "Atunci cand piesa este selectata,");
+    printtext(width / 2, height / 4 + 110, "doua slidere vor aparea:");
+
+    printtext(width / 2, height / 4 + 160, "Sterge = Stergerea unei piese si a");
+    printtext(width / 2, height / 4 + 190, "tuturor legaturilor cu piesa respectiva");
+
+    printtext(width / 2, height / 4 + 240, "Sterge Tot = Curatarea ecranului de toate");
+    printtext(width / 2, height / 4 + 270, "piesele si legaturile");
+
+    printtext(width / 2, height / 4 + 320, "Salveaza = Salvarea progresului facut in");
+    printtext(width / 2, height / 4 + 350, "fisierul de lucru");
+
+    printtext(width / 2, height / 4 + 400, "Salveaza Ca = Crearea unui nou fisier in");
+    printtext(width / 2, height / 4 + 430, "care va fi salvat schema electrica");
+
+    printtext(width / 2, height / 4 + 480, "Incarca = Deschiderea unui fisier deja creat");
+    printtext(width / 2, height / 4 + 510, "si lucrarea in acesta");
+
+    DrawButton(width - 80, 20, width - 20, 60);
+    printtext(width - 50, 40, "Inapoi");
+
+}
+
+
 void Lclick_handler(int x, int y)
 {
-    bool condition1 = (x < width/c*c && width/c*(c-1) < x && 0 < y && y < height/b); //condition for finding the close button
-    bool condition2 = (x < width/c*(c-1) && width/c*(c-2) < x && 0 < y && y < height/b); //condition for finding the back to menu button
-    bool condition3 = (x < width/c*2 && width/c < x && 0 < y && y < height/b); //condition for finding the delete button
-    bool condition4 = (ok==1 && x < width/c && 0 < x && height/b < y && y < height/b*(nrPiese+1)); // condition for selection a piece from hovering over the first button
-    bool condition5 = (ok==3 && height/b < y && y < height/b*(b-1)); // condition for drawing the selected piece in the space it is allowed
-    bool condition6 = (ok==2 && x < width/c*3 && width/c*2 < x && height/b < y && y < height/b*5); // condition for accessing the workspace buttons
-    bool condition7 = (y > height/b*(b-1)); // access the space under the bottom line drawn on the screen
-    bool condition8 = (height/b < y && y < height/b*(b-1)); //access the space where you place the pieces, the space between the two drawn lines on the screen
-    bool condition9 = (x < (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle + height/b/4) && (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle - height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y); // condition for finding the slider for rotation
-    bool condition10 = (x < (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4) && (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y); // condtion for finding the slider for size
+    if(ScreenNumber==1)
+    {
+        if (x > width / 4 && x < 3 * width / 4)
+    {
+        if (y > height / 4 && y < 5 * height / 12)
+        {
+            ScreenNumber=2;
+        }
+        else if (y > 5 * height / 12 && y < 2 * height / 3)
+        {
+            ScreenNumber=3;
+            HelpScreen();
+        }
+        else if (y > 2 * height / 3 && y < 11 * height / 12)
+        {
+            closegraph();
+            getch();
+        }
+    }
+    }
+    else if(ScreenNumber==2)
+    {
+    bool condition1 = (x < width/c*c && width/c*(c-1) < x && 0 < y && y < height/b);
+    bool condition2 = (x < width/c*(c-1) && width/c*(c-2) < x && 0 < y && y < height/b);
+    bool condition3 = (x < width/c*2 && width/c < x && 0 < y && y < height/b);
+    bool condition4 = (ok==1 && x < width/c && 0 < x && height/b < y && y < height/b*(nrPiese+1));
+    bool condition5 = (ok==3 && height/b < y && y < height/b*(b-1));
+    bool condition6 = (ok==2 && x < width/c*3 && width/c*2 < x && height/b < y && y < height/b*5);
+    bool condition7 = (y > height/b*(b-1));
+    bool condition8 = (height/b < y && y < height/b*(b-1));
+    bool condition9 = (x < (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle + height/b/4) && (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle - height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y);
+    bool condition10 = (x < (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4) && (height/b*b+height/b*(b-1))/2+height/b/4, (width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM)-height/b/4) < x && y < (height/b*b+height/b*(b-1))/2+height/b/4 && (height/b*b+height/b*(b-1))/2-height/b/4 < y);
 
     if(condition1)
     {
@@ -380,28 +514,34 @@ void Lclick_handler(int x, int y)
         getch();
     }
     if(!condition1 && condition2)
-        BacktoStartScreen();
+    {
+        ScreenNumber=1;
+        BackToStartScreen();
+    }
     if(!condition1 && !condition2 && condition3)
         DeletePiece();
-    if(!condition1 && !condition2 && !condition3 && condition4) // select a piece
+    if(!condition1 && !condition2 && !condition3 && condition4)
     {
         RestartMenu();
         selectedpiece = y/(height/b)-1;
         ok=3;
-
     }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && condition5) // place the selected piece in the space
+    if(!condition1 && !condition2 && !condition3 && !condition4 && condition5)
     {
-        Drawing(piese[selectedpiece], x, y, 0, WHITE, zoom);
-        placedPieces[nrPlacedPieces].index = selectedpiece;
-        placedPieces[nrPlacedPieces].x = x;
-        placedPieces[nrPlacedPieces].y = y;
-        placedPieces[nrPlacedPieces].rotationangle = 0;
-        placedPieces[nrPlacedPieces].sizep = zoom;
-        nrPlacedPieces++;
-        ok=0;
+        if (selectedpiece != -1)
+        {
+            // Place the selected piece in the space
+            Drawing(piese[selectedpiece], x, y, 0, WHITE, zoom);
+            placedPieces[nrPlacedPieces].index = selectedpiece;
+            placedPieces[nrPlacedPieces].x = x;
+            placedPieces[nrPlacedPieces].y = y;
+            placedPieces[nrPlacedPieces].rotationangle = 0;
+            placedPieces[nrPlacedPieces].sizep = zoom;
+            nrPlacedPieces++;
+            ok=0;
+        }
     }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && condition6) //for clicks from the button instrumente
+    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && condition6)
     {
         if(y/(height/b) == 1)
             ResetMapOfPieces();
@@ -415,9 +555,9 @@ void Lclick_handler(int x, int y)
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && condition7 && ok==4)
     {
         if(condition9)
-            Pok=1; // rotation angle
+            Pok=1;
         if(condition10)
-            Pok=2; // size
+            Pok=2;
     }
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && (ok==0 || ok==4))
     {
@@ -442,10 +582,35 @@ void Lclick_handler(int x, int y)
     if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && condition7)
     {
     }
+    }
+    else if(ScreenNumber=3)
+    {
+        if (ismouseclick(WM_LBUTTONDOWN))
+    {
+        int mx, my;
+        getmouseclick(WM_LBUTTONDOWN, mx, my);
 
+
+        if (mx > width - 80 && mx < width - 20 && my > 20 && my < 60)
+        {
+            ScreenNumber=1;
+            BackToStartScreen();
+            return;
+        }
+        else
+        {
+            clearmouseclick(WM_LBUTTONDOWN);
+        }
+    }
+    }
 }
+
+
+
 void Move_handler(int x, int y)
 {
+    if(ScreenNumber==2){
+
     if(ok == 4 && y < height/b && (x < width/c || (x < width/c*3 && width/c*2 < x)))
         DeselectPiece();
     if(Pok > 0)
@@ -476,11 +641,11 @@ void Move_handler(int x, int y)
         }
     else
     {
-        if(ok==1 && x < width/c && 0 < x && height/b-5 < y && y < height/b*(nrPiese+1)) //keep that list of pieces open when hovering over that list/first button
+        if(ok == 1 && x < width/c && 0 < x && height/b-5 < y && y < height/b*(nrPiese+1)) //keep that list of pieces open when hovering over that list/first button
         {
             return;
         }
-        else if(ok==1) //if we are not hovering over that list/first button it will dissapear
+        else if(ok == 1) //if we are not hovering over that list/first button it will dissapear
             RestartMenu();
 
     }
@@ -491,34 +656,69 @@ void Move_handler(int x, int y)
             printtext(width/c*5/2, (height/b*(i+1)+height/b*(i+2))/2, bworkspace[i]);
             ok=2;
         }
-    else if(ok==2 && x < width/c*3 && width/c*2 < x && height/b-5 < y && y < height/b*5)
+    else if(ok == 2 && x < width/c*3 && width/c*2 < x && height/b-5 < y && y < height/b*5)
         return;
-    else if(ok==2)
+    else if(ok == 2)
         RestartMenu();
+        }
+}
+
+
+void LDBLCLICK_handler(int x, int y)
+{
+    if (isDragging && PSelected != -1)
+    {
+        placedPieces[PSelected].x = x;
+        placedPieces[PSelected].y = y;
+        RestartMenu();
+    }
+}
+
+void RClick_handler(int x, int y)
+{
+    if (PSelected != -1)
+    {
+        // Check if the mouse double-click is within the boundaries of the selected piece
+        if (x > placedPieces[PSelected].x - placedPieces[PSelected].sizep * 1.5 &&
+            x < placedPieces[PSelected].x + placedPieces[PSelected].sizep * 1.5 &&
+            y > placedPieces[PSelected].y - placedPieces[PSelected].sizep * 1.5 &&
+            y < placedPieces[PSelected].y + placedPieces[PSelected].sizep * 1.5) {
+            DeselectPiece();
+            isDragging = false;
+        }
+    }
 }
 
 void LUPclick_handler(int x, int y)
 {
-    if(Pok > 0)
+    if (Pok > 0)
     {
-        Pok=0;
+        Pok = 0;
     }
+
+    isDragging = false;
 }
 
 void initializare()
 {
-    initwindow(width, height);
-    RestartMenu();
-    registermousehandler(WM_LBUTTONUP,LUPclick_handler);
-    registermousehandler(WM_LBUTTONDOWN,Lclick_handler);
-    registermousehandler(WM_MOUSEMOVE,Move_handler);
-    delay(4000000);// so it doesnt instantly close the program
+    DrawMainMenu();
+    registermousehandler(WM_LBUTTONDOWN, Lclick_handler);
+    registermousehandler(WM_LBUTTONUP, LUPclick_handler);
+    registermousehandler(WM_LBUTTONDBLCLK, LDBLCLICK_handler);
+    registermousehandler(WM_RBUTTONDOWN, RClick_handler);
+    registermousehandler(WM_MOUSEMOVE, Move_handler);
+    delay(4000000);
 }
 
 int main()
 {
     string path = R"(C:\Users\miha\Desktop\stari ale proiectului\piesele refacute)";
+    bool inMainMenu = true;
+    bool exitProgram = false;
+
+    initwindow(width, height, "Electron");
     incarcapiesele(path);
     initializare();
+
     return 0;
 }
