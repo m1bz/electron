@@ -3,7 +3,6 @@
 #include <fstream>
 #include <filesystem>
 #include <cmath>
-#include <conio.h>
 #define MAX1 10
 #define MAX2 25
 #define MAX3 3
@@ -63,7 +62,7 @@ int maxp=-1;
 int minp;
 int nrPiese = 0;
 int nrPlacedPieces = 0;
-int width = 1280, height = 720; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
+int width = 1920, height = 1080; // 16:9 resolutions: 1920 x 1080, 1600 x 900, 1280 x 720
 int selectedpiece = 0;
 int PSelected = -1;
 int c = 8; //number of buttons
@@ -86,6 +85,8 @@ bool isDragging=false;
 bool pieceSelected=false;
 int mouseXOnPress, mouseYOnPress;
 float pieceXOnPress, pieceYOnPress;
+bool movePiece=false;
+int selectedPieceIndex=-1;
 
 
 int ColorSelected()
@@ -214,8 +215,7 @@ void Drawing(piesa P, float x, float y, float angle, int Color, float sizedrawin
         float x_2 = P.nodpiesa[i].x;
         float y_2 = P.nodpiesa[i].y;
         Rotate(x_2, y_2, angle);
-        circle(x+x_2*sizedrawing,y+y_2*sizedrawing, sizedrawing/5);
-        floodfill(x+x_2*sizedrawing,y+y_2*sizedrawing,Color);
+        fillellipse(x+x_2*sizedrawing,y+y_2*sizedrawing, sizedrawing/5,sizedrawing/5);
     }
     for(int i = 0; i < P.NumberOfDrawingCommands; i++)
         switch(P.comanda[i].tipfigura)
@@ -309,16 +309,14 @@ void BackToStartScreen()
 void DrawPlacedPieces()
 {
     if(nrPlacedPieces!=0)
+    {
         for(int i = 0; i < nrPlacedPieces; i++)
         {
             Drawing(piese[placedPieces[i].index], placedPieces[i].x, placedPieces[i].y, placedPieces[i].rotationangle, placedPieces[i].Color, placedPieces[i].sizep);
         }
+    }
 }
 
-void CheckIfPieceIsSelected()
-{
-
-}
 
 void PropertiesMenu()
 {
@@ -340,27 +338,40 @@ void PropertiesMenu()
 
 }
 
+void DrawLines(float x_1, float y_1, float x_2, float y_2, int size_1)
+{
+    float x1 = piese[placedPieces[PreviousSelectedNode.PieceNumber].index].nodpiesa[PreviousSelectedNode.NodeNumber].x;
+    float y1 = piese[placedPieces[PreviousSelectedNode.PieceNumber].index].nodpiesa[PreviousSelectedNode.NodeNumber].y;
+    Rotate(x1,y1,placedPieces[PreviousSelectedNode.PieceNumber].rotationangle);
+    line(x_1 + size_1*x1, y_1 + size_1*y1, x_1 + size_1*x1, (y_1 + size_1*y1 + y_2)/2);
+    line(x_1 + size_1*x1, (y_1 + size_1*y1 + y_2)/2, x_2, (y_1 + size_1*y1 + y_2)/2);
+    line(x_2, (y_1 + size_1*y1 + y_2)/2, x_2, y_2);
+}
+
 void DrawConnections()
 {
     for(int i = 0; i < nrPlacedPieces; i++)
         for(int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
             if(placedPieces[i].node[j].PieceNumber!= -1 && i < placedPieces[i].node[j].PieceNumber)
             {
-                float x1 = piese[placedPieces[i].index].nodpiesa[j].x;
-                float y1 = piese[placedPieces[i].index].nodpiesa[j].y;
-                float x2 = piese[placedPieces[placedPieces[i].node[j].PieceNumber].index].nodpiesa[placedPieces[i].node[j].NodeNumber].x;
-                float y2 = piese[placedPieces[placedPieces[i].node[j].PieceNumber].index].nodpiesa[placedPieces[i].node[j].NodeNumber].y;
+                float x1 = piese[placedPieces[i].index].nodpiesa[j].x; //coordonatele nodului piesei in care s-a gasit legatura
+                float y1 = piese[placedPieces[i].index].nodpiesa[j].y; //coordonatele nodului piesei in care s-a gasit legatura
+                float x2 = piese[placedPieces[placedPieces[i].node[j].PieceNumber].index].nodpiesa[placedPieces[i].node[j].NodeNumber].x; //coordonatele nodului celelaltei piese in care avem legatura
+                float y2 = piese[placedPieces[placedPieces[i].node[j].PieceNumber].index].nodpiesa[placedPieces[i].node[j].NodeNumber].y; //coordonatele nodului celelaltei piese in care avem legatura
                 Rotate(x1, y1, placedPieces[i].rotationangle);
                 Rotate(x2, y2, placedPieces[placedPieces[i].node[j].PieceNumber].rotationangle);
-                //line(placedPieces[i].x + placedPieces[i].sizep*x1, placedPieces[i].y + placedPieces[i].sizep*y1, placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2); //this one draws one line straight from the connection of one point to the another one
-                //for(int a = 0; a < nrPlacedPieces; a++)
-                // if()
-                line(placedPieces[i].x + placedPieces[i].sizep*x1, placedPieces[i].y + placedPieces[i].sizep*y1, (placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[i].y + placedPieces[i].sizep*y1);
-                line((placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[i].y + placedPieces[i].sizep*y1, (placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2);
-                line((placedPieces[i].x + placedPieces[i].sizep*x1 + placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2)/2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2, placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2);
+                //line(placedPieces[i].x + placedPieces[i].sizep*x1, placedPieces[i].y + placedPieces[i].sizep*y1, placedPieces[placedPieces[i].node[j].PieceNumber].x + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*x2, placedPieces[placedPieces[i].node[j].PieceNumber].y + placedPieces[placedPieces[i].node[j].PieceNumber].sizep*y2); //this one draws one line straight from the connection of one point to the another one                int x_1 = placedPieces[i].x; // coordonatele piesei in care s-a gasit legatura
+                int x_1 = placedPieces[i].x; // coordonatele piesei in care s-a gasit legatura
+                int y_1 = placedPieces[i].y; // coordonatele piesei in care s-a gasit legatura
+                int x_2 = placedPieces[placedPieces[i].node[j].PieceNumber].x; // coordonatele piesei cu care se face legatura
+                int y_2 = placedPieces[placedPieces[i].node[j].PieceNumber].y; // coordonatele piesei cu care se face legatura
+                int size_1 = placedPieces[i].sizep; // marimea piesei
+                int size_2 = placedPieces[placedPieces[i].node[j].PieceNumber].sizep; // marimea celei de-a doua piesa
+                line(x_1 + size_1*x1, y_1 + size_1*y1, x_1 + size_1*x1, (y_1 + size_1*y1 + y_2 + size_2*y2)/2);
+                line(x_1 + size_1*x1, (y_1 + size_1*y1 + y_2 + size_2*y2)/2, x_2 + size_2*x2, (y_1 + size_1*y1 + y_2 + size_2*y2)/2);
+                line(x_2 + size_2*x2, (y_1 + size_1*y1 + y_2 + size_2*y2)/2, x_2 + size_2*x2, y_2 + size_2*y2);
 
-
-            }
+            } //"x_1 + size_1*x1" "y_1 + size_1*y1"      , "x_2 + size_2*x2"  "y_2 + size_2*y2"
 }
 
 void RestartMenu()
@@ -452,6 +463,14 @@ void LoadMapOfPieces()
 
 void ResetMapOfPieces()
 {
+    for(int i = 0 ; i < nrPlacedPieces; i++)
+    {
+        for(int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
+        {
+            placedPieces[i].node[j].NodeNumber = -1;
+            placedPieces[i].node[j].PieceNumber = -1;
+        }
+    }
     nrPlacedPieces = 0;
     RestartMenu();
     cout << "Map resetted" << endl;
@@ -471,18 +490,24 @@ void SelectPiece()
     ok = 4;
 }
 
+void NullTheConnections(int i)
+{
+    for(int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
+    {
+        placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].NodeNumber = -1;
+        placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].PieceNumber = -1;
+        placedPieces[i].node[j].NodeNumber = -1;
+        placedPieces[i].node[j].PieceNumber = -1;
+    }
+}
+
 void DeletePiece()
 {
     if (PSelected != -1)
     {
-        for (int i = PSelected; i < nrPlacedPieces - 1; ++i)
-        {
-            placedPieces[i] = placedPieces[i + 1];
-        }
-        nrPlacedPieces--;
-
+        NullTheConnections(PSelected);
+        placedPieces[PSelected].index = -1;
         DeselectPiece();
-
         RestartMenu();
     }
 }
@@ -494,29 +519,30 @@ void HelpScreen()
     setcolor(WHITE);
     setfillstyle(SOLID_FILL, WHITE);
 
-    settextstyle(BOLD_FONT, HORIZ_DIR, 2);
+    settextstyle(BOLD_FONT, HORIZ_DIR, 1);
     printtext(width / 2, height / 8, "Ajutor");
 
-    printtext(width / 2, height / 4, "Click = Selectarea Piesei");
-    printtext(width / 2, height / 4 + 30, "DoubleClick = Deselectarea Piesei");
+    printtext(width / 2, height / 4 - 5, "Left Click = Selectarea Piesei");
+    printtext(width / 2, height / 4 + 25, "Double Left Click = Selectare Piesa pentru Mutare");
+    printtext(width / 2, height / 4 + 55, "Middle Click = Deselectarea Piesei dupa Mutare");
 
-    printtext(width / 2, height / 4 + 80, "Atunci cand piesa este selectata,");
-    printtext(width / 2, height / 4 + 110, "doua slidere vor aparea:");
+    printtext(width / 2, height / 4 + 100, "Atunci cand piesa este selectata, doua slidere");
+    printtext(width / 2, height / 4 + 120, "vor aparea: unul pentru zoom si unul pentru unghi");
 
-    printtext(width / 2, height / 4 + 160, "Sterge = Stergerea unei piese si a");
-    printtext(width / 2, height / 4 + 190, "tuturor legaturilor cu piesa respectiva");
+    printtext(width / 2, height / 4 + 155, "Sterge = Stergerea unei piese si a");
+    printtext(width / 2, height / 4 + 185, "tuturor legaturilor cu piesa respectiva");
 
-    printtext(width / 2, height / 4 + 240, "Sterge Tot = Curatarea ecranului de toate");
-    printtext(width / 2, height / 4 + 270, "piesele si legaturile");
+    printtext(width / 2, height / 4 + 235, "Sterge Tot = Curatarea ecranului de toate");
+    printtext(width / 2, height / 4 + 265, "piesele si legaturile");
 
-    printtext(width / 2, height / 4 + 320, "Salveaza = Salvarea progresului facut in");
-    printtext(width / 2, height / 4 + 350, "fisierul de lucru");
+    printtext(width / 2, height / 4 + 315, "Salveaza = Salvarea progresului facut in");
+    printtext(width / 2, height / 4 + 345, "fisierul de lucru");
 
-    printtext(width / 2, height / 4 + 400, "Salveaza Ca = Crearea unui nou fisier in");
-    printtext(width / 2, height / 4 + 430, "care va fi salvat schema electrica");
+    printtext(width / 2, height / 4 + 395, "Salveaza Ca = Crearea unui nou fisier in");
+    printtext(width / 2, height / 4 + 425, "care va fi salvat schema electrica");
 
-    printtext(width / 2, height / 4 + 480, "Incarca = Deschiderea unui fisier deja creat");
-    printtext(width / 2, height / 4 + 510, "si lucrarea in acesta");
+    printtext(width / 2, height / 4 + 475, "Incarca = Deschiderea unui fisier deja creat");
+    printtext(width / 2, height / 4 + 505, "si lucrarea in acesta");
 
     DrawButton(width - 80, 20, width - 20, 60);
     printtext(width - 50, 40, "Inapoi");
@@ -553,264 +579,290 @@ void Lclick_handler(int x, int y)
     if(ScreenNumber==1)
     {
         if (x > width / 4 && x < 3 * width / 4)
-    {
-        if (y > height / 4 && y < 5 * height / 12)
         {
-            ScreenNumber=2;
+            if (y > height / 4 && y < 5 * height / 12)
+            {
+                ScreenNumber=2;
+                RestartMenu();
+            }
+            else if (y > 5 * height / 12 && y < 2 * height / 3)
+            {
+                ScreenNumber=3;
+                HelpScreen();
+            }
+            else if (y > 2 * height / 3 && y < 11 * height / 12)
+            {
+                closegraph();
+                getch();
+            }
         }
-        else if (y > 5 * height / 12 && y < 2 * height / 3)
-        {
-            ScreenNumber=3;
-            HelpScreen();
-        }
-        else if (y > 2 * height / 3 && y < 11 * height / 12)
-        {
-            closegraph();
-            getch();
-        }
-    }
     }
     else if(ScreenNumber==2)
     {
 
-    bool condition1 = (x < width/c*c && width/c*(c-1) < x && 0 < y && y < height/b); //condition for finding the close button
-    bool condition2 = (x < width/c*(c-1) && width/c*(c-2) < x && 0 < y && y < height/b); //condition for finding the back to menu button
-    bool condition3 = (x < width/c*2 && width/c < x && 0 < y && y < height/b); //condition for finding the delete button
-    bool condition4 = (ok==1 && x < width/c && 0 < x && height/b < y && y < height/b*(nrPiese+1)); // condition for selection a piece from hovering over the first button
-    bool condition5 = (ok==3 && height/b < y && y < height/b*(b-1)); // condition for drawing the selected piece in the space it is allowed
-    bool condition6 = (ok==2 && x < width/c*3 && width/c*2 < x && height/b < y && y < height/b*5); // condition for accessing the workspace buttons
-    bool condition7 = (y > height/b*(b-1)); // access the space under the bottom line drawn on the screen
-    bool condition8 = (height/b < y && y < height/b*(b-1)); //access the space where you place the pieces, the space between the two drawn lines on the screen
-    bool condition9 = (x < (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle + height/b/4) && (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle - height/b/4) < x && y < (height/b*b + height/b*(b-1))/2 + height/b/4 && (height/b*b + height/b*(b-1))/2 - height/b/4 < y); // condition for finding the slider for rotation
-    bool condition10 = (x < (width/c*(c-2) + width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4) && (width/c*(c-2) + width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) - height/b/4) < x && y < (height/b*b + height/b*(b-1))/2 + height/b/4 && (height/b*b + height/b*(b-1))/2 - height/b/4 < y); // condtion for finding the slider for size
-    bool condition11 = (x < width/c*3 + width/c/2 && width/c*3 < x && 0 < y && y < height/b); // condition for finding the plus button
-    bool condition12 = (x < width/c*4 && width/c*3 + width/c/2 < x && 0 < y && y < height/b); // condition for finding the minus button
+        bool condition1 = (x < width/c*c && width/c*(c-1) < x && 0 < y && y < height/b); //condition for finding the close button
+        bool condition2 = (x < width/c*(c-1) && width/c*(c-2) < x && 0 < y && y < height/b); //condition for finding the back to menu button
+        bool condition3 = (x < width/c*2 && width/c < x && 0 < y && y < height/b); //condition for finding the delete button
+        bool condition4 = (ok==1 && x < width/c && 0 < x && height/b < y && y < height/b*(nrPiese+1)); // condition for selection a piece from hovering over the first button
+        bool condition5 = (ok==3 && height/b < y && y < height/b*(b-1)); // condition for drawing the selected piece in the space it is allowed
+        bool condition6 = (ok==2 && x < width/c*3 && width/c*2 < x && height/b < y && y < height/b*5); // condition for accessing the workspace buttons
+        bool condition7 = (y > height/b*(b-1)); // access the space under the bottom line drawn on the screen
+        bool condition8 = (height/b < y && y < height/b*(b-1)); //access the space where you place the pieces, the space between the two drawn lines on the screen
+        bool condition9 = (x < (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle + height/b/4) && (width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle - height/b/4) < x && y < (height/b*b + height/b*(b-1))/2 + height/b/4 && (height/b*b + height/b*(b-1))/2 - height/b/4 < y); // condition for finding the slider for rotation
+        bool condition10 = (x < (width/c*(c-2) + width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) + height/b/4) && (width/c*(c-2) + width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM) - height/b/4) < x && y < (height/b*b + height/b*(b-1))/2 + height/b/4 && (height/b*b + height/b*(b-1))/2 - height/b/4 < y); // condtion for finding the slider for size
+        bool condition11 = (x < width/c*3 + width/c/2 && width/c*3 < x && 0 < y && y < height/b); // condition for finding the plus button
+        bool condition12 = (x < width/c*4 && width/c*3 + width/c/2 < x && 0 < y && y < height/b); // condition for finding the minus button
+        bool condition13 = (PSelected != -1 && x > width/c*2 && width/c < x && height/b*5 < y && y < height/b*6); // condition for wasd movement
 
-    if(condition1)
-    {
-        closegraph();
-        getch();
-    }
-    if(!condition1 && condition2)
-    {
-        ScreenNumber=1;
-        BackToStartScreen();
-    }
-    if(!condition1 && !condition2 && condition3)
-        DeletePiece();
-    if(!condition1 && !condition2 && !condition3 && condition4) // select a piece
-    {
-        RestartMenu();
-        selectedpiece = y/(height/b)-1;
-        ok=3;
-
-    }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && condition5) // place the selected piece in the space
-    {
-        Drawing(piese[selectedpiece], x, y, 0, WHITE, zoom);
-        placedPieces[nrPlacedPieces].index = selectedpiece;
-        placedPieces[nrPlacedPieces].x = x;
-        placedPieces[nrPlacedPieces].y = y;
-        placedPieces[nrPlacedPieces].rotationangle = 0;
-        placedPieces[nrPlacedPieces].sizep = zoom;
-        nrPlacedPieces++;
-        ok = 0;
-    }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && condition6) //for clicks from the button instrumente
-    {
-        if(y/(height/b) == 1)
-            ResetMapOfPieces();
-        if(y/(height/b) == 2)
-            SaveMapOfPieces();
-        if(y/(height/b) == 3)
-            SaveAsMapOfPieces();
-        if(y/(height/b) == 4)
-            LoadMapOfPieces();
-    }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && condition7 && ok==4)
-    {
-        if(condition9)
-            Pok=1; // rotation angle
-        if(condition10)
-            Pok=2; // size
-    }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && (ok==0 || ok==4))
-    {
-        if(ok == 4)
-            DeselectPiece();
-        ok = 0;
-        for(int i = 0 ; i < nrPlacedPieces; i++)
-            if( x < placedPieces[i].x + placedPieces[i].sizep*1.5 && placedPieces[i].x - placedPieces[i].sizep*1.5 < x && y < placedPieces[i].y + placedPieces[i].sizep*1.5 && placedPieces[i].y - placedPieces[i].sizep*1.5 < y )
-            {
-                PSelected = i;
-                ok=4;
-                break;
-            }
-        if(ok == 0)
-            DeselectPiece();
-        else
+        if(condition1)
         {
-            SelectPiece();
-            PropertiesMenu();
+            closegraph();
+            getch();
         }
-    }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && PSelected == -1 && (ok == 0 || ok == 5))
-    {
-
-        for(int i = 0 ; i < nrPlacedPieces; i++)
+        if(!condition1 && condition2)
         {
-            for(int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
-            {
-                float x_2 = piese[placedPieces[i].index].nodpiesa[j].x;
-                float y_2 = piese[placedPieces[i].index].nodpiesa[j].y;
-                Rotate(x_2, y_2, placedPieces[i].rotationangle);
-                if( x < (placedPieces[i].x + placedPieces[i].sizep*x_2 + placedPieces[i].sizep/5) && placedPieces[i].x + placedPieces[i].sizep*x_2 - placedPieces[i].sizep/5< x && y < placedPieces[i].y + placedPieces[i].sizep*y_2 + placedPieces[i].sizep/5 && placedPieces[i].y + placedPieces[i].sizep*y_2 - placedPieces[i].sizep/5 < y )
+            ScreenNumber=1;
+            BackToStartScreen();
+        }
+        if(!condition1 && !condition2 && condition3)
+            DeletePiece();
+        if(!condition1 && !condition2 && !condition3 && condition4) // select a piece
+        {
+            RestartMenu();
+            selectedpiece = y/(height/b)-1;
+            ok=3;
+
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && condition5) // place the selected piece in the space
+        {
+            Drawing(piese[selectedpiece], x, y, 0, WHITE, zoom);
+            placedPieces[nrPlacedPieces].index = selectedpiece;
+            placedPieces[nrPlacedPieces].x = x;
+            placedPieces[nrPlacedPieces].y = y;
+            placedPieces[nrPlacedPieces].rotationangle = 0;
+            placedPieces[nrPlacedPieces].sizep = zoom;
+            nrPlacedPieces++;
+            ok = 0;
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && condition6) //for clicks from the button instrumente
+        {
+            if(y/(height/b) == 1)
+                ResetMapOfPieces();
+            if(y/(height/b) == 2)
+                SaveMapOfPieces();
+            if(y/(height/b) == 3)
+                SaveAsMapOfPieces();
+            if(y/(height/b) == 4)
+                LoadMapOfPieces();
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && condition7 && ok==4)
+        {
+            if(condition9)
+                Pok=1; // rotation angle
+            if(condition10)
+                Pok=2; // size
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && (ok==0 || ok==4))
+        {
+            if(ok == 4)
+                DeselectPiece();
+            ok = 0;
+            for(int i = 0 ; i < nrPlacedPieces; i++)
+                if( x < placedPieces[i].x + placedPieces[i].sizep*1.5 && placedPieces[i].x - placedPieces[i].sizep*1.5 < x && y < placedPieces[i].y + placedPieces[i].sizep*1.5 && placedPieces[i].y - placedPieces[i].sizep*1.5 < y )
                 {
-                    if(ok == 0)
-                    {
-                        PreviousSelectedNode.PieceNumber = i;
-                        PreviousSelectedNode.NodeNumber = j;
-                        ok = 5;
-                        break;
-                    }
-                    else if(ok == 5)
-                    {
-                        placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].NodeNumber = -1;
-                        placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].PieceNumber = -1;
-                        placedPieces[i].node[j].NodeNumber = -1;
-                        placedPieces[i].node[j].PieceNumber = -1;
-                        placedPieces[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber].node[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber].NodeNumber = -1;
-                        placedPieces[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber].node[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber].PieceNumber = -1;
-                        placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber = -1;
-                        placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber = -1;
-                        placedPieces[i].node[j].NodeNumber = PreviousSelectedNode.NodeNumber;
-                        placedPieces[i].node[j].PieceNumber = PreviousSelectedNode.PieceNumber;
-                        placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber = j;
-                        placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber = i;
-                        PreviousSelectedNode.NodeNumber = -1;
-                        PreviousSelectedNode.PieceNumber = -1;
-                        ok = 0;
-                        RestartMenu();
-                    }
+                    PSelected = i;
+                    ok=4;
+                    break;
                 }
-
+            if(ok == 0)
+                DeselectPiece();
+            else
+            {
+                SelectPiece();
+                PropertiesMenu();
             }
         }
-    }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && condition8 && PSelected == -1 && (ok == 0 || ok == 5))
+        {
 
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition11)
-    {
-        if(maxsize() + 2 <= MAXZOOM)
-            for(int i = 0; i < nrPlacedPieces; i++)
-                placedPieces[i].sizep += 2;
-        else
-            cout<<"MAXIMUM SIZE FOR ONE PIECE HAS BEEN REACHED"<<endl;
-        DeselectPiece();
-        RestartMenu();
-    }
-    if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition12)
-    {
-        if(minsize() - 2 >= MINZOOM)
-            for(int i = 0; i < nrPlacedPieces; i++)
-                placedPieces[i].sizep -= 2;
-        else
-            cout<<"MINIMUM SIZE FOR ONE PIECE HAS BEEN REACHED"<<endl;
-        DeselectPiece();
-        RestartMenu();
-    }
+            for(int i = 0 ; i < nrPlacedPieces; i++)
+            {
+                for(int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
+                {
+                    float x_2 = piese[placedPieces[i].index].nodpiesa[j].x;
+                    float y_2 = piese[placedPieces[i].index].nodpiesa[j].y;
+                    Rotate(x_2, y_2, placedPieces[i].rotationangle);
+                    if( x < (placedPieces[i].x + placedPieces[i].sizep*x_2 + placedPieces[i].sizep/5) && placedPieces[i].x + placedPieces[i].sizep*x_2 - placedPieces[i].sizep/5 < x && y < placedPieces[i].y + placedPieces[i].sizep*y_2 + placedPieces[i].sizep/5 && placedPieces[i].y + placedPieces[i].sizep*y_2 - placedPieces[i].sizep/5 < y )
+                    {
+                        if(ok == 0)
+                        {
+                            PreviousSelectedNode.PieceNumber = i;
+                            PreviousSelectedNode.NodeNumber = j;
+                            ok = 5;
+                            break;
+                        }
+                        else if(ok == 5)
+                        {
+                            if(i != PreviousSelectedNode.PieceNumber)
+                            {
+                                placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].NodeNumber = -1;
+                                placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].PieceNumber = -1;
+                                placedPieces[i].node[j].NodeNumber = -1;
+                                placedPieces[i].node[j].PieceNumber = -1;
+                                placedPieces[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber].node[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber].NodeNumber = -1;
+                                placedPieces[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber].node[placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber].PieceNumber = -1;
+                                placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber = -1;
+                                placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber = -1;
+                                placedPieces[i].node[j].NodeNumber = PreviousSelectedNode.NodeNumber;
+                                placedPieces[i].node[j].PieceNumber = PreviousSelectedNode.PieceNumber;
+                                placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber = j;
+                                placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber = i;
+                                PreviousSelectedNode.NodeNumber = -1;
+                                PreviousSelectedNode.PieceNumber = -1;
+                                ok = 0;
+                                RestartMenu();
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition11)
+        {
+            if(maxsize() + 2 <= MAXZOOM)
+                for(int i = 0; i < nrPlacedPieces; i++)
+                    placedPieces[i].sizep += 2;
+            else
+                cout<<"MAXIMUM SIZE FOR ONE PIECE HAS BEEN REACHED"<<endl;
+            DeselectPiece();
+            RestartMenu();
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition12)
+        {
+            if(minsize() - 2 >= MINZOOM)
+                for(int i = 0; i < nrPlacedPieces; i++)
+                    placedPieces[i].sizep -= 2;
+            else
+                cout<<"MINIMUM SIZE FOR ONE PIECE HAS BEEN REACHED"<<endl;
+            DeselectPiece();
+            RestartMenu();
+        }
     }
     else if(ScreenNumber==3)
     {
-        if (ismouseclick(WM_LBUTTONDOWN))
-    {
-        int mx, my;
-        getmouseclick(WM_LBUTTONDOWN, mx, my);
-
-
-        if (mx > width - 80 && mx < width - 20 && my > 20 && my < 60)
+        if (x > width - 80 && x < width - 20 && y > 20 && y < 60)
         {
             ScreenNumber=1;
             BackToStartScreen();
             return;
         }
-        else
-        {
-            clearmouseclick(WM_LBUTTONDOWN);
-        }
-    }
     }
 }
 
 
-void LDBLCLICK_handler(int x, int y)
-{
-    if (isDragging && PSelected != -1)
-    {
-        placedPieces[PSelected].x = x;
-        placedPieces[PSelected].y = y;
-        RestartMenu();
-    }
-}
+
 
 void Move_handler(int x, int y)
 {
     if(ScreenNumber==2)
-    if(ok == 4 && y < height/b && (x < width/c || (x < width/c*3 && width/c*2 < x)))
-        DeselectPiece();
-    if(Pok > 0)
     {
-        if(Pok == 1)
+        if(isDragging && PSelected!=-1)
         {
-            if(x-width/c*(c-3) >= 0 && x <= width/c*(c-2))
+            placedPieces[PSelected].x=x;
+            placedPieces[PSelected].y=y;
+            RestartMenu();
+        }
+        if(ok == 4 && y < height/b && (x < width/c || (x < width/c*3 && width/c*2 < x)))
+            DeselectPiece();
+        if(Pok > 0)
+        {
+            if(Pok == 1)
             {
-                placedPieces[PSelected].rotationangle = ((x-width/c*(c-3))/PixelOfRotation);
-                RestartMenu();
+                if(x-width/c*(c-3) >= 0 && x <= width/c*(c-2))
+                {
+                    placedPieces[PSelected].rotationangle = ((x-width/c*(c-3))/PixelOfRotation);
+                    RestartMenu();
+                }
+            }
+            if(Pok == 2)
+            {
+                if(width/c*(c-2)+width/c/2 <= x && x <= width/c*(c-1)+width/c/2)
+                {
+                    placedPieces[PSelected].sizep = ((x-(width/c*(c-2)+width/c/2))/PixelOfZoom)+MINZOOM;;
+                    RestartMenu();
+                }
             }
         }
-        if(Pok == 2)
+        if(x < width/c && 0 < x && 0 < y && y < height/b) //hover over first button to open the list of pieces
         {
-            if(width/c*(c-2)+width/c/2 <= x && x <= width/c*(c-1)+width/c/2)
+            for(int i = 0; i < nrPiese; i++)
             {
-                placedPieces[PSelected].sizep = ((x-(width/c*(c-2)+width/c/2))/PixelOfZoom)+MINZOOM;;
-                RestartMenu();
+                DrawButton(0, height/b*(i+1), width/c, height/b*(i+2));
+                Drawing(piese[i], width/c/2, (height/b*(i+1)+height/b*(i+2))/2, 0, WHITE, zoom);
+                ok=1;
             }
         }
-    }
-    if(x < width/c && 0 < x && 0 < y && y < height/b) //hover over first button to open the list of pieces
-        for(int i = 0; i < nrPiese; i++)
+        else
         {
-            DrawButton(0, height/b*(i+1), width/c, height/b*(i+2));
-            Drawing(piese[i], width/c/2, (height/b*(i+1)+height/b*(i+2))/2, 0, WHITE, zoom);
-            ok=1;
+            if(ok == 1 && x < width/c && 0 < x && height/b-5 < y && y < height/b*(nrPiese+1)) //keep that list of pieces open when hovering over that list/first button
+            {
+                return;
+            }
+            else if(ok == 1) //if we are not hovering over that list/first button it will dissapear
+            {
+                RestartMenu();
+            }
+
         }
-    else
-    {
-        if(ok == 1 && x < width/c && 0 < x && height/b-5 < y && y < height/b*(nrPiese+1)) //keep that list of pieces open when hovering over that list/first button
+        if(x < width/c*3 && width/c*2 < x && 0 < y && y < height/b && ok!=1) // same logic as the first button, but we have the workspace tools in here
+        {
+            for(int i = 0; i < 4; i++)
+            {
+                DrawButton(width/c*2, height/b*(i+1), width/c*3, height/b*(i+2));
+                printtext(width/c*5/2, (height/b*(i+1)+height/b*(i+2))/2, bworkspace[i]);
+                ok=2;
+            }
+        }
+        else if(ok == 2 && x < width/c*3 && width/c*2 < x && height/b-5 < y && y < height/b*5)
         {
             return;
         }
-        else if(ok == 1) //if we are not hovering over that list/first button it will dissapear
-            RestartMenu();
-
-    }
-    if(x < width/c*3 && width/c*2 < x && 0 < y && y < height/b && ok!=1) // same logic as the first button, but we have the workspace tools in here
-        for(int i = 0; i < 4; i++)
+        else if(ok == 2)
         {
-            DrawButton(width/c*2, height/b*(i+1), width/c*3, height/b*(i+2));
-            printtext(width/c*5/2, (height/b*(i+1)+height/b*(i+2))/2, bworkspace[i]);
-            ok=2;
+            RestartMenu();
         }
-    else if(ok == 2 && x < width/c*3 && width/c*2 < x && height/b-5 < y && y < height/b*5)
-        return;
-    else if(ok == 2)
-        RestartMenu();
+        /*if(ok == 5)//daca scot asta merge, daca o las, da break la conexiuni
+        {
+            DrawLines(placedPieces[PreviousSelectedNode.PieceNumber].x,placedPieces[PreviousSelectedNode.PieceNumber].y,x,y,placedPieces[PreviousSelectedNode.PieceNumber].sizep);
+            RestartMenu();
+        }*/
+    }
 }
 
 void LUPclick_handler(int x, int y)
 {
     if(Pok > 0)
+    {
         Pok = 0;
-    isDragging = false;
+    }
+}
+void DoubleClick_Handler(int x, int y)
+{
+    if(PSelected!=-1)
+    {
+        isDragging=true;
+    }
+}
+
+void StopDragging(int x, int y)
+{
+    if(PSelected != -1 && (height/b < y && y < height/b*(b-1)))
+    {
+        DeselectPiece();
+        isDragging=false;
+    }
 }
 
 void initializare()
@@ -819,6 +871,8 @@ void initializare()
     registermousehandler(WM_LBUTTONUP,LUPclick_handler);
     registermousehandler(WM_LBUTTONDOWN,Lclick_handler);
     registermousehandler(WM_MOUSEMOVE,Move_handler);
+    registermousehandler(WM_LBUTTONDBLCLK,DoubleClick_Handler);
+    registermousehandler(WM_MBUTTONDOWN,StopDragging);
     delay(4000000);
 }
 
