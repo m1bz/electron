@@ -52,6 +52,7 @@ struct MapOfSavedPieces
     int rotationangle;
     int sizep = zoom;
     int Color = WHITE;
+    int intensitate = 0,rezistenta = 0;
     Connections node[MAX3];
 };
 
@@ -79,15 +80,9 @@ const char *bnames[] = { "INTRODUCE", /*TEXT #1 BUTTON*/ "STERGE", /*TEXT #2 BUT
 const char *bcarac[2] = {"UNGHI:", "MARIME:"};
 const char *bworkspace[4] = {"STERGE TOT", "SALVEAZA", "SALVEAZA CA", "INCARCA"};
 string lastLoadedFilePath;
-bool inMainMenu = true;
 int ScreenNumber=1;
 bool isDragging=false;
-bool pieceSelected=false;
-int mouseXOnPress, mouseYOnPress;
-float pieceXOnPress, pieceYOnPress;
-bool movePiece=false;
-int selectedPieceIndex=-1;
-
+float IGlobal, RGlobal;
 
 int ColorSelected()
 {
@@ -257,7 +252,7 @@ void DrawMainMenu()
 
 
     settextstyle(BOLD_FONT, HORIZ_DIR, 4);
-    outtextxy(width / 2 - textwidth("Electron") / 2, height / 8 - textheight("Electron") / 2, "Electron");
+    printtext(width / 2, height / 8, "ELECTRON");
 
 
     setcolor(COLOR(0, 0, 255));
@@ -298,6 +293,13 @@ void Menu()
         DrawButton(width/c*i, 1.5, width/c*(i+1), yline);// /c - how many buttons can fit; 1.5 - for fitting
         printtext((width/c*i+width/c*(i+1))/2,yline/2,bnames[i]);
     }
+    DrawButton(width / c * 4, 1.5, width / c * 5, yline); // button for conectability check
+    printtext((width / c * 4 + width / c * 5) / 2, yline / 2, "CONEXITATE");
+    DrawButton(width / c * 5, 1.5, width / c * 5.5, yline); // button for intensity
+    printtext((width / c * 5 + width / c * 5.5) / 2, yline / 2, "I");
+
+    DrawButton(width / c * 5.5, 1.5, width / c * 6, yline); // button for resistance
+    printtext((width / c * 5.5 + width / c * 6) / 2, yline / 2, "R");
 }
 
 void BackToStartScreen()
@@ -312,6 +314,8 @@ void DrawPlacedPieces()
     {
         for(int i = 0; i < nrPlacedPieces; i++)
         {
+            if(placedPieces[i].Color == YELLOW)
+                printtext(width / 2, (height/b*b+height/b*(b-1))/2, "Nodul Piesei a fost selectat");
             Drawing(piese[placedPieces[i].index], placedPieces[i].x, placedPieces[i].y, placedPieces[i].rotationangle, placedPieces[i].Color, placedPieces[i].sizep);
         }
     }
@@ -326,15 +330,24 @@ void PropertiesMenu()
     setlinestyle(0,0,0);
     circle(width/c*(c-2)+width/c/2 + PixelOfZoom*(placedPieces[PSelected].sizep-MINZOOM), (height/b*b+height/b*(b-1))/2, height/b/4);
     circle(width/c*(c-3) + PixelOfRotation*placedPieces[PSelected].rotationangle, (height/b*b+height/b*(b-1))/2, height/b/4);
-    char temp[4][100];
+    char temp[10][100];
     sprintf(temp[2], "%d", placedPieces[PSelected].rotationangle);
     sprintf(temp[3], "%d", placedPieces[PSelected].sizep);
+    sprintf(temp[4], "%d", placedPieces[PSelected].intensitate);
+    sprintf(temp[5], "%d", placedPieces[PSelected].rezistenta);
     strcpy(temp[0], "UNGHI:");
+    strcpy(temp[1], "ZOOM:");
+    strcpy(temp[6],"INTENSITATE:");
+    strcpy(temp[7],"REZISTENTA:");
+    strcpy(temp[8]," ");
     outtextxy(width/c/2 - textwidth(temp[0]) / 2, (height/b*b+height/b*(b-1))/2 - textheight(temp[0]) / 2, temp[0]);
     outtextxy(width/c/2 + textwidth(temp[0]) / 2, (height/b*b+height/b*(b-1))/2 - textheight(temp[0]) / 2, temp[2]);
-    strcpy(temp[1], "ZOOM:");
-    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2])*2, (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2, temp[1]);
-    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2])*2 + textwidth(temp[1]), (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2,  temp[3]);
+    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2]) + textwidth(temp[8])*3, (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2, temp[1]);
+    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2]) + textwidth(temp[8])*3 + textwidth(temp[1]), (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2,  temp[3]);
+    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2]) + textwidth(temp[8])*3 + textwidth(temp[1]) + textwidth(temp[3]) + textwidth(temp[8])*3 , (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2,  temp[6]);
+    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2]) + textwidth(temp[8])*3 + textwidth(temp[1]) + textwidth(temp[3]) + textwidth(temp[8])*3 + textwidth(temp[6]), (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2,  temp[4]);
+    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2]) + textwidth(temp[8])*3 + textwidth(temp[1]) + textwidth(temp[3]) + textwidth(temp[8])*3 + textwidth(temp[6]) + textwidth(temp[4]) + textwidth(temp[8])*3, (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2,  temp[7]);
+    outtextxy(width/c/2 + textwidth(temp[0]) / 2 + textwidth(temp[2]) + textwidth(temp[8])*3 + textwidth(temp[1]) + textwidth(temp[3]) + textwidth(temp[8])*3 + textwidth(temp[6]) + textwidth(temp[4]) + textwidth(temp[8])*3 + textwidth(temp[7]), (height/b*b+height/b*(b-1))/2 - textheight(temp[1]) / 2,  temp[5]);
 
 }
 
@@ -393,7 +406,7 @@ void SaveMapToFile(const string& filePath, bool overwrite)
 {
     if (!overwrite && filesystem::exists(filePath))
     {
-        cout << "Error: File already exists. Choose a different filename or enable overwrite." << endl;
+        cout << "Eroare: Fisierul deja exista sau overwrite-ul este imposibil. Selectati alt fisier" << endl;
         return;
     }
 
@@ -401,8 +414,16 @@ void SaveMapToFile(const string& filePath, bool overwrite)
 
     for (int i = 0; i < nrPlacedPieces; i++)
     {
-        file << placedPieces[i].index << " " << placedPieces[i].x << " " << placedPieces[i].y << " "
-             << placedPieces[i].rotationangle << " " << placedPieces[i].sizep << " " << placedPieces[i].Color << endl;
+        file << placedPieces[i].index << " " << placedPieces[i].x << " " << placedPieces[i].y
+             << " " << placedPieces[i].rotationangle << " " << placedPieces[i].sizep
+             << " " << placedPieces[i].Color;
+
+        for (int j = 0; j < MAX3; j++)
+        {
+            file << " " << placedPieces[i].node[j].PieceNumber << " " << placedPieces[i].node[j].NodeNumber;
+        }
+
+        file << endl;
     }
 
     file.close();
@@ -412,18 +433,18 @@ void SaveMapOfPieces(bool overwrite = true)
 {
     string filePath = (lastLoadedFilePath.empty()) ? "map.txt" : lastLoadedFilePath;
     SaveMapToFile(filePath, overwrite);
-    cout << "Map saved to: " << filePath << endl;
+    cout << "Harta a fost salvata in fisierul: " << filePath << endl;
 }
 
 void SaveMapAs(bool overwrite = true)
 {
     string filePath;
     overwrite = false;
-    cout << "Select a file to save the map: ";
+    cout << "Selectati o harta pe care sa salvati: ";
     cin >> filePath;
 
     SaveMapToFile(filePath, overwrite);
-    cout << "Map saved to: " << filePath << endl;
+    cout << "Harta a fost salvata in fisierul: " << filePath << endl;
 }
 
 void SaveAsMapOfPieces()
@@ -439,6 +460,11 @@ void LoadMapFromFile(const string& filePath)
     while (file >> placedPieces[nrPlacedPieces].index >> placedPieces[nrPlacedPieces].x >> placedPieces[nrPlacedPieces].y
             >> placedPieces[nrPlacedPieces].rotationangle >> placedPieces[nrPlacedPieces].sizep >> placedPieces[nrPlacedPieces].Color)
     {
+        for (int j = 0; j < MAX3; j++)
+        {
+            file >> placedPieces[nrPlacedPieces].node[j].PieceNumber >> placedPieces[nrPlacedPieces].node[j].NodeNumber;
+        }
+
         nrPlacedPieces++;
         if (nrPlacedPieces >= MAX_PLACED_PIECES)
             break;
@@ -452,12 +478,12 @@ void LoadMapFromFile(const string& filePath)
 void LoadMapOfPieces()
 {
     string filePath;
-    cout << "Select a file to load the map from: ";
+    cout << "Selectati un fisier din care sa se incarce harta: ";
     cin >> filePath;
 
     LoadMapFromFile(filePath);
     RestartMenu();
-    cout << "Map loaded from: " << filePath << endl;
+    cout << "Harta incarcata din: " << filePath << endl;
 }
 
 
@@ -473,7 +499,7 @@ void ResetMapOfPieces()
     }
     nrPlacedPieces = 0;
     RestartMenu();
-    cout << "Map resetted" << endl;
+    cout << "Harta resetata" << endl;
 }
 
 void DeselectPiece()
@@ -501,15 +527,43 @@ void NullTheConnections(int i)
     }
 }
 
-void DeletePiece()
+void DeletePiece(int index)
 {
-    if (PSelected != -1)
+    if (index < 0 || index >= nrPlacedPieces)
     {
-        NullTheConnections(PSelected);
-        placedPieces[PSelected].index = -1;
-        DeselectPiece();
-        RestartMenu();
+        cout << "Index invalid" << endl;
+        return;
     }
+    NullTheConnections(index);
+
+    for (int i = index; i < nrPlacedPieces - 1; ++i)
+    {
+        placedPieces[i] = placedPieces[i + 1];
+    }
+
+    nrPlacedPieces--;
+
+    if (PSelected == index)
+    {
+        DeselectPiece();
+    }
+    RestartMenu();
+    DrawConnections();
+}
+
+bool IsCircuitComplete()
+{
+    for (int i = 0; i < nrPlacedPieces; i++)
+    {
+        for (int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
+        {
+            if (placedPieces[i].node[j].PieceNumber == -1 || placedPieces[i].node[j].NodeNumber == -1)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void HelpScreen()
@@ -520,34 +574,52 @@ void HelpScreen()
     setfillstyle(SOLID_FILL, WHITE);
 
     settextstyle(BOLD_FONT, HORIZ_DIR, 1);
-    printtext(width / 2, height / 8, "Ajutor");
+    printtext(width / 2, height / 10, "Ajutor");
 
-    printtext(width / 2, height / 4 - 5, "Left Click = Selectarea Piesei");
-    printtext(width / 2, height / 4 + 25, "Double Left Click = Selectare Piesa pentru Mutare");
-    printtext(width / 2, height / 4 + 55, "Middle Click = Deselectarea Piesei dupa Mutare");
+    printtext(width / 2, height / 7 , "Left Click = Selectarea Piesei");
+    printtext(width / 2, height / 7 + 30, "Double Left Click = Selectare Piesa pentru Mutare");
+    printtext(width / 2, height / 7 + 60, "Middle Click = Deselectarea Piesei dupa Mutare");
+    printtext(width / 2, height / 7 + 90, "Right Click = Cand Apesi pe un nod, dispar legaturile din acel nod");
 
-    printtext(width / 2, height / 4 + 100, "Atunci cand piesa este selectata, doua slidere");
-    printtext(width / 2, height / 4 + 120, "vor aparea: unul pentru zoom si unul pentru unghi");
+    printtext(width / 2, height / 7 + 130, "Atunci cand piesa este selectata, doua slidere");
+    printtext(width / 2, height / 7 + 160, "vor aparea: unul pentru zoom si unul pentru unghi");
 
-    printtext(width / 2, height / 4 + 155, "Sterge = Stergerea unei piese si a");
-    printtext(width / 2, height / 4 + 185, "tuturor legaturilor cu piesa respectiva");
+    printtext(width / 2, height / 7 + 200, "Sterge = Stergerea unei piese si a");
+    printtext(width / 2, height / 7 + 230, "tuturor legaturilor cu piesa respectiva");
 
-    printtext(width / 2, height / 4 + 235, "Sterge Tot = Curatarea ecranului de toate");
-    printtext(width / 2, height / 4 + 265, "piesele si legaturile");
+    printtext(width / 2, height / 7 + 270, "Sterge Tot = Curatarea ecranului de toate");
+    printtext(width / 2, height / 7 + 300, "piesele si legaturile");
 
-    printtext(width / 2, height / 4 + 315, "Salveaza = Salvarea progresului facut in");
-    printtext(width / 2, height / 4 + 345, "fisierul de lucru");
+    printtext(width / 2, height / 7 + 330, "Salveaza = Salvarea progresului facut in");
+    printtext(width / 2, height / 7 + 360, "fisierul de lucru");
 
-    printtext(width / 2, height / 4 + 395, "Salveaza Ca = Crearea unui nou fisier in");
-    printtext(width / 2, height / 4 + 425, "care va fi salvat schema electrica");
+    printtext(width / 2, height / 7 + 390, "Salveaza Ca = Crearea unui nou fisier in");
+    printtext(width / 2, height / 7 + 420, "care va fi salvat schema electrica");
 
-    printtext(width / 2, height / 4 + 475, "Incarca = Deschiderea unui fisier deja creat");
-    printtext(width / 2, height / 4 + 505, "si lucrarea in acesta");
+    printtext(width / 2, height / 7 + 450, "Incarca = Deschiderea unui fisier deja creat");
+    printtext(width / 2, height / 7 + 480, "si lucrarea in acesta");
+
+    printtext(width / 2, height / 7 + 510, "Plus = Mareste toate piesele");
+    printtext(width / 2, height / 7 + 540, "Minus = Micsoreaza toate piesele");
+
+    printtext(width / 2, height / 7 + 570, "Complet? = Verifica daca schema electrica este completa");
+    printtext(width / 2, height / 7 + 600, "(mai exact, daca toate nodurile sunt conectate)");
+
+    printtext(width / 2, height / 7 + 630, "I = Schimbarea intensitatii piesei selectate");
+    printtext(width / 2, height / 7 + 660, "R = Schimbarea rezistentei piesei selectate");
+
+    printtext(width / 2, height / 7 + 690, "Inapoi = Intoarcerea la meniul principal");
+    printtext(width / 2, height / 7 + 720, "Iesire = Inchiderea Programului");
+
+    printtext(width / 2, height / 7 + 750, "Nota: Toate butoanele din Instrumente plus butoanele");
+    printtext(width / 2, height / 7 + 780, "pentru verificare a schemei si pentru a schimba");
+    printtext(width / 2, height / 7 + 810, "a intensitatii si rezistentei se folosesc de consola/terminal");
 
     DrawButton(width - 80, 20, width - 20, 60);
     printtext(width - 50, 40, "Inapoi");
 
 }
+
 
 int maxsize()
 {
@@ -559,7 +631,6 @@ int maxsize()
                 temp = placedPieces[i].sizep;
         return temp;
     }
-
 }
 
 int minsize()
@@ -613,6 +684,9 @@ void Lclick_handler(int x, int y)
         bool condition11 = (x < width/c*3 + width/c/2 && width/c*3 < x && 0 < y && y < height/b); // condition for finding the plus button
         bool condition12 = (x < width/c*4 && width/c*3 + width/c/2 < x && 0 < y && y < height/b); // condition for finding the minus button
         bool condition13 = (PSelected != -1 && x > width/c*2 && width/c < x && height/b*5 < y && y < height/b*6); // condition for wasd movement
+        bool condition14 = (x > width / c * 4 && x < width / c * 5 && 0 < y && y <= height/b); // condition for finding the complete scheme button
+        bool condition15 = (x > width / c * 5 && x < width / c * 5.5 && 0 < y && y < height/b); // condition for finding intensity button
+        bool condition16 = (x > width / c * 5.5 && x < width / c * 6 && 0 < y && y < height/b); // condition for finding resistance button
 
         if(condition1)
         {
@@ -625,7 +699,7 @@ void Lclick_handler(int x, int y)
             BackToStartScreen();
         }
         if(!condition1 && !condition2 && condition3)
-            DeletePiece();
+            DeletePiece(PSelected);
         if(!condition1 && !condition2 && !condition3 && condition4) // select a piece
         {
             RestartMenu();
@@ -698,6 +772,8 @@ void Lclick_handler(int x, int y)
                         {
                             PreviousSelectedNode.PieceNumber = i;
                             PreviousSelectedNode.NodeNumber = j;
+                            placedPieces[i].Color = YELLOW;
+                            RestartMenu();
                             ok = 5;
                             break;
                         }
@@ -717,6 +793,7 @@ void Lclick_handler(int x, int y)
                                 placedPieces[i].node[j].PieceNumber = PreviousSelectedNode.PieceNumber;
                                 placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].NodeNumber = j;
                                 placedPieces[PreviousSelectedNode.PieceNumber].node[PreviousSelectedNode.NodeNumber].PieceNumber = i;
+                                placedPieces[PreviousSelectedNode.PieceNumber].Color = WHITE;
                                 PreviousSelectedNode.NodeNumber = -1;
                                 PreviousSelectedNode.PieceNumber = -1;
                                 ok = 0;
@@ -735,7 +812,7 @@ void Lclick_handler(int x, int y)
                 for(int i = 0; i < nrPlacedPieces; i++)
                     placedPieces[i].sizep += 2;
             else
-                cout<<"MAXIMUM SIZE FOR ONE PIECE HAS BEEN REACHED"<<endl;
+                cout<<"MARIMEA MAXIMA PENTRU O PIESA S-A ATINS"<<endl;
             DeselectPiece();
             RestartMenu();
         }
@@ -745,9 +822,43 @@ void Lclick_handler(int x, int y)
                 for(int i = 0; i < nrPlacedPieces; i++)
                     placedPieces[i].sizep -= 2;
             else
-                cout<<"MINIMUM SIZE FOR ONE PIECE HAS BEEN REACHED"<<endl;
+                cout<<"MARIMEA MINIMA PENTRU O PIESA S-A ATINS"<<endl;
             DeselectPiece();
             RestartMenu();
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition14)
+        {
+            if (IsCircuitComplete())
+            {
+                cout << "Circuitul este complet" << endl;
+                for (int i = 0; i < nrPlacedPieces; i++)
+                {
+                    RGlobal += placedPieces[i].rezistenta;
+                    IGlobal += placedPieces[i].intensitate;
+                }
+                cout << "Intensitatea Circuitului =" << IGlobal << endl;
+                cout << "Rezistenta circuitului =" << RGlobal << endl;
+            }
+            else
+            {
+                cout << "Circuitul nu este complet" << endl;
+            }
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition15)
+        {
+            if(PSelected != -1)
+            {
+                cout << "Introduceti noua intensitate pentru piesa selectata: ";
+                cin >> placedPieces[PSelected].intensitate;
+            }
+        }
+        if(!condition1 && !condition2 && !condition3 && !condition4 && !condition5 && !condition6 && !condition7 && !condition8 && condition16)
+        {
+            if(PSelected != -1)
+            {
+                cout << "Introduceti noua rezistenta pentru piesa selectata: ";
+                cin >> placedPieces[PSelected].rezistenta;
+            }
         }
     }
     else if(ScreenNumber==3)
@@ -856,6 +967,40 @@ void DoubleClick_Handler(int x, int y)
     }
 }
 
+void Rclick_handler(int x, int y)
+{
+    if(ok == 5 && height/b < y && y < height/b*(b-1) && PreviousSelectedNode.PieceNumber != -1)
+    {
+        placedPieces[PreviousSelectedNode.PieceNumber].Color = WHITE;
+        PreviousSelectedNode.NodeNumber = -1;
+        PreviousSelectedNode.PieceNumber = -1;
+        ok = 0;
+        RestartMenu();
+    }
+    else if(ok == 0)
+    {
+        for(int i = 0 ; i < nrPlacedPieces; i++)
+        {
+            for(int j = 0; j < piese[placedPieces[i].index].NumberOfNodes; j++)
+            {
+                float x_2 = piese[placedPieces[i].index].nodpiesa[j].x;
+                float y_2 = piese[placedPieces[i].index].nodpiesa[j].y;
+                Rotate(x_2, y_2, placedPieces[i].rotationangle);
+                if( x < (placedPieces[i].x + placedPieces[i].sizep*x_2 + placedPieces[i].sizep/5) && placedPieces[i].x + placedPieces[i].sizep*x_2 - placedPieces[i].sizep/5 < x && y < placedPieces[i].y + placedPieces[i].sizep*y_2 + placedPieces[i].sizep/5 && placedPieces[i].y + placedPieces[i].sizep*y_2 - placedPieces[i].sizep/5 < y )
+                {
+                    placedPieces[i].Color = WHITE;
+                    placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].NodeNumber = -1;
+                    placedPieces[placedPieces[i].node[j].PieceNumber].node[placedPieces[i].node[j].NodeNumber].PieceNumber = -1;
+                    placedPieces[i].node[j].NodeNumber = -1;
+                    placedPieces[i].node[j].PieceNumber = -1;
+                    RestartMenu();
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void StopDragging(int x, int y)
 {
     if(PSelected != -1 && (height/b < y && y < height/b*(b-1)))
@@ -873,15 +1018,14 @@ void initializare()
     registermousehandler(WM_MOUSEMOVE,Move_handler);
     registermousehandler(WM_LBUTTONDBLCLK,DoubleClick_Handler);
     registermousehandler(WM_MBUTTONDOWN,StopDragging);
+    registermousehandler(WM_RBUTTONDOWN,Rclick_handler);
     delay(4000000);
 }
 
 int main()
 {
     string path = R"(C:\Users\miha\Documents\CodeBlocks\electron\piese electrice)";
-    bool inMainMenu = true;
-    bool exitProgram = false;
-    initwindow(width, height, "Electron");
+    initwindow(width, height, "ELECTRON");
     incarcapiesele(path);
     initializare();
 
